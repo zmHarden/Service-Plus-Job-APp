@@ -44,23 +44,36 @@ button1.addEventListener('clicked', async () => {
     {
       console.log("You got it");
       displayJob.setText(textBox1.text() + "\n" + dateSelector.date().toString(1)
-      + "\n $" + textBox2.text());
-      
+      + "\n$" + textBox2.text());
     }
     else{
       console.log("Nuh Uh \n")
       const allJobs = await prisma.Job.findMany()
-      console.log(allJobs);
-      console.log("\n");
 
       let tempText = "";
       for(let x = 0; x < allJobs.length; x++)
       {
-        for(let y in allJobs[x])
+        tempText = tempText + "Store #: " + allJobs[x].Store + "\n"
+
+        tempText = tempText + "PO: " + allJobs[x].PO + "\n"
+
+        let dateString = allJobs[x].billDate.toISOString().slice(0, 10);
+        dateString = dateString.slice(5, 7) + "/" + dateString.slice(8, 10) + "/"  + dateString.slice(0, 4)
+
+        tempText = tempText + "Date: " + dateString + "\n"
+
+        let tempBilled = allJobs[x].amountBilled.toString()
+        tempBilled = tempBilled.slice(0, tempBilled.length-2) + "." + tempBilled.slice(tempBilled.length-2)
+        tempText = tempText + "Amount Billed: $" + tempBilled + "\n"
+
+        if(allJobs[x].amountPaid == null)
+        {tempText = tempText + "Amount Paid: N/A" + "\n\n"}
+        else
         {
-          tempText = tempText  + y + ": " + allJobs[x][y] + "\n"
+          let tempPaid = allJobs[x].amountPaid.toString();
+          tempPaid = tempPaid.slice(0, tempPaid.length-2) + "." + tempPaid.slice(tempPaid.length-2)
+          tempText = tempText + "Amount Paid: $" + tempPaid + "\n\n"
         }
-        tempText = tempText + "\n"
       }
       displayJob.setText(tempText);
     }
