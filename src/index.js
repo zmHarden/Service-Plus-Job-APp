@@ -13,41 +13,48 @@ centralWidget.setObjectName("myroot");
 const rootLayout = new FlexLayout();
 centralWidget.setLayout(rootLayout);
 
-const title1 = new QLabel();
-title1.setObjectName("title1");
-title1.setText("Create A Job");
+//Create a New Job
+const titleCreate = new QLabel();
+titleCreate.setObjectName("title");
+titleCreate.setText("Create A Job");
 
-const label2 = new QLabel();
-label2.setObjectName("label1");
-label2.setText("PO #: ");
+const labelPO1 = new QLabel();
+labelPO1.setObjectName("label");
+labelPO1.setText("PO #: ");
+
+const textBoxPO1 = new QLineEdit();
+
+const labelStore1 = new QLabel();
+labelStore1.setObjectName("label");
+labelStore1.setText("Store #: ");
+
+const textBoxStore1 = new QLineEdit();
+
+const labelDate = new QLabel();
+labelDate.setObjectName("label");
+labelDate.setText("Date: ");
 
 const dateSelector = new QDateEdit();
 
-const label3 = new QLabel();
-label3.setObjectName("label1");
-label3.setText("Date: ");
+const labelBilled = new QLabel();
+labelBilled.setObjectName("label");
+labelBilled.setText("Amount Billed: ");
 
-const label4 = new QLabel();
-label4.setObjectName("label1");
-label4.setText("Dollar Amount: ");
+const textBoxBilled = new QLineEdit();
 
-const textBox1 = new QLineEdit();
-const textBox2 = new QLineEdit();
+const buttonCreate = new QPushButton();
+buttonCreate.setText('Submit');
+buttonCreate.addEventListener('clicked', async () => {
 
-const displayJob = new QTextBrowser();
-displayJob.setReadOnly(true);
+    let validPO = false;
+    let inputPO = textBoxPO1.displayText();
 
-const button1 = new QPushButton();
-button1.setText('Submit');
-button1.addEventListener('clicked', async () => {
-    if(textBox1.displayText() === "56709")
+    if(validPO)
     {
-      console.log("You got it");
-      displayJob.setText(textBox1.text() + "\n" + dateSelector.date().toString(1)
+      displayJobAdd.setText(textBoxPO1.text() + "\n" + dateSelector.date().toString(1)
       + "\n$" + textBox2.text());
     }
     else{
-      console.log("Nuh Uh \n")
       const allJobs = await prisma.Job.findMany()
 
       let tempText = "";
@@ -75,24 +82,116 @@ button1.addEventListener('clicked', async () => {
           tempText = tempText + "Amount Paid: $" + tempPaid + "\n\n"
         }
       }
-      displayJob.setText(tempText);
+      displayJobAdd.setText(tempText);
     }
 });
 
-rootLayout.addWidget(title1); //Create a Job
 
-rootLayout.addWidget(label2); //PO
-rootLayout.addWidget(textBox1);
+//Add Pay to existing job
+const titleAdd = new QLabel();
+titleAdd.setObjectName("title");
+titleAdd.setText("Add Pay to Job");
 
-rootLayout.addWidget(label3); //Dollar Amount
-rootLayout.addWidget(dateSelector); //Date
+const labelPO2 = new QLabel();
+labelPO2.setObjectName("label");
+labelPO2.setText("PO #: ");
 
-rootLayout.addWidget(label4); //Dollar Amount
-rootLayout.addWidget(textBox2);
+const textBoxPO2 = new QLineEdit();
 
-rootLayout.addWidget(button1); //Submit Create
+const labelStore2 = new QLabel();
+labelStore2.setObjectName("label");
+labelStore2.setText("Store #: ");
 
-rootLayout.addWidget(displayJob);
+const textBoxStore2 = new QLineEdit();
+
+const labelPaid = new QLabel();
+labelPaid.setObjectName("label");
+labelPaid.setText("Amount Paid: ");
+
+const textBoxPaid = new QLineEdit();
+
+const buttonAdd = new QPushButton();
+buttonAdd.setText('Submit');
+buttonAdd.addEventListener('clicked', async () => {
+  return;
+});
+
+const displayJobAdd = new QTextBrowser();
+displayJobAdd.setReadOnly(true);
+
+
+//Find an existing job to display it
+const titleFind = new QLabel();
+titleFind.setObjectName("title");
+titleFind.setText("Find Job");
+
+const labelPO3 = new QLabel();
+labelPO3.setObjectName("label");
+labelPO3.setText("PO #: ");
+
+const textBoxPO3 = new QLineEdit();
+
+const labelStore3 = new QLabel();
+labelStore3.setObjectName("label");
+labelStore3.setText("Store #: ");
+
+const textBoxStore3 = new QLineEdit();
+
+const buttonFind = new QPushButton();
+buttonFind.setText('Submit');
+buttonFind.addEventListener('clicked', async () => {
+  return;
+});
+
+const displayJobFind = new QTextBrowser();
+displayJobFind.setReadOnly(true);
+
+//----------------------------------
+
+rootLayout.addWidget(titleCreate);
+
+rootLayout.addWidget(labelPO1);
+rootLayout.addWidget(textBoxPO1);
+
+rootLayout.addWidget(labelStore1);
+rootLayout.addWidget(textBoxStore1);
+
+rootLayout.addWidget(labelDate);
+rootLayout.addWidget(dateSelector);
+
+rootLayout.addWidget(labelBilled);
+rootLayout.addWidget(textBoxBilled);
+
+rootLayout.addWidget(buttonCreate);
+
+
+rootLayout.addWidget(titleAdd);
+
+rootLayout.addWidget(labelPO2);
+rootLayout.addWidget(textBoxPO2);
+
+rootLayout.addWidget(labelStore2);
+rootLayout.addWidget(textBoxStore2);
+
+rootLayout.addWidget(labelPaid);
+rootLayout.addWidget(textBoxPaid);
+
+rootLayout.addWidget(buttonAdd);
+
+rootLayout.addWidget(displayJobAdd);
+
+
+rootLayout.addWidget(titleFind);
+
+rootLayout.addWidget(labelPO3);
+rootLayout.addWidget(textBoxPO3);
+
+rootLayout.addWidget(labelStore3);
+rootLayout.addWidget(textBoxStore3);
+
+rootLayout.addWidget(buttonFind);
+
+rootLayout.addWidget(displayJobFind);
 
 
 win.setCentralWidget(centralWidget);
@@ -104,12 +203,12 @@ win.setStyleSheet(
       align-items: 'center';
       justify-content: 'center';
     }
-    #title1 {
+    #title {
       font-size: 18px;
       font-weight: bold;
       padding: 1;
     }
-    #label1 {
+    #label {
       font-size: 12px;
       padding: 1;
     }
