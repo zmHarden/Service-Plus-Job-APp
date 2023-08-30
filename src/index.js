@@ -1,5 +1,5 @@
 import { QMainWindow, QWidget, QLabel, FlexLayout, QPushButton, QLineEdit, 
-  QDateEdit, QTextBrowser } from '@nodegui/nodegui';
+  QDateEdit, QTextBrowser, QCalendarWidget, QDate } from '@nodegui/nodegui';
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 const prompt = require("prompt-sync")();
@@ -34,7 +34,11 @@ const labelDate = new QLabel();
 labelDate.setObjectName("label");
 labelDate.setText("Date: ");
 
+const calendarWidgetCreate = new QCalendarWidget();
 const dateSelector = new QDateEdit();
+dateSelector.setCalendarPopup(true);
+dateSelector.setDate(QDate.currentDate());
+dateSelector.setCalendarWidget(calendarWidgetCreate);
 
 const labelBilled = new QLabel();
 labelBilled.setObjectName("label");
@@ -48,11 +52,12 @@ buttonCreate.addEventListener('clicked', async () => {
 
     let validPO = false;
     let inputPO = textBoxPO1.displayText();
+    if(inputPO === "56709"){validPO = true}
 
     if(validPO)
     {
       displayJobAdd.setText(textBoxPO1.text() + "\n" + dateSelector.date().toString(1)
-      + "\n$" + textBox2.text());
+      + "\n$" + textBoxBilled.text());
     }
     else{
       const allJobs = await prisma.Job.findMany()
@@ -157,14 +162,15 @@ rootLayout.addWidget(labelStore1);
 rootLayout.addWidget(textBoxStore1);
 
 rootLayout.addWidget(labelDate);
-rootLayout.addWidget(dateSelector);
+rootLayout.addWidget(dateSelector.calendarWidget());
 
 rootLayout.addWidget(labelBilled);
 rootLayout.addWidget(textBoxBilled);
 
 rootLayout.addWidget(buttonCreate);
+rootLayout.addWidget(displayJobAdd);
 
-
+/*
 rootLayout.addWidget(titleAdd);
 
 rootLayout.addWidget(labelPO2);
@@ -192,7 +198,7 @@ rootLayout.addWidget(textBoxStore3);
 rootLayout.addWidget(buttonFind);
 
 rootLayout.addWidget(displayJobFind);
-
+*/
 
 win.setCentralWidget(centralWidget);
 win.setStyleSheet(
