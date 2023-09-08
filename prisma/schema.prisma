@@ -16,7 +16,7 @@ model Job {
   Store     Int      
   PO        Int      
   billDate DateTime  @db.Date
-  amountBilled Int
+  amountBilled Int?
   amountPaid Int? 
   @@id([Store, PO])
 }
