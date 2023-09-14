@@ -213,7 +213,8 @@ buttonCreate.addEventListener('clicked', async () => {
       })
 
       displayJob.setText("Job Successfully Created:\nPO Number: " + poNum 
-      + "\nStore Number: " + storeNum + "\nDate: " + date + "\nAmount Billed: $" + inputBilled);
+      + "\nStore Number: " + storeNum + "\nDate: " + date 
+      + "\nAmount Billed: $" + inputBilled + "\nAmount Paid: $" + inputPaid);
 
     }
     catch(err){
@@ -287,8 +288,8 @@ buttonCreate.addEventListener('clicked', async () => {
 const buttonEdit = new QPushButton();
 buttonEdit.setText('Edit a Job');
 buttonEdit.addEventListener('clicked', async () => {
-
-  let found = false;
+  
+  let foundJob = null;
 
   const dialog = new QDialog();
   const dialogLayout = new FlexLayout()
@@ -319,14 +320,14 @@ buttonEdit.addEventListener('clicked', async () => {
     {
       if(inputPO.length != 8)
       {
-        displayJob.setText("Please enter valid PO number");
+        textBoxFound.setText("Invalid PO #");
         return;
       }
       poNum = parseInt(inputPO);
     }
     else
     {
-      displayJob.setText("PO number must contain only numbers. Please re-enter");
+      textBoxFound.setText("Invalid PO #");
       return;
     }
 
@@ -336,7 +337,7 @@ buttonEdit.addEventListener('clicked', async () => {
       let inputStore = textBoxStore1.displayText()
       if(inputStore === "")
       {
-        displayJob.setText("Please enter store number.");
+        textBoxFound.setText("Please enter store #.");
         return;
       }
 
@@ -346,7 +347,7 @@ buttonEdit.addEventListener('clicked', async () => {
       }
       else
       {
-        displayJob.setText("Please enter valid store number");
+        textBoxFound.setText("Invalid store #");
         return;
       }
     }
@@ -374,14 +375,12 @@ buttonEdit.addEventListener('clicked', async () => {
       else if(ident === "724" || ident === "725"){storeNum = 6672}
       else
       {
-        displayJob.setText("Store Number not found. Invalid PO. Please Re-enter.");
+        textBoxFound.setText("Store # not found");
         return;
       }
     }
-    
-    displayJob.setText(poNum + "\n" + storeNum);
 
-    let foundJob = await prisma.Job.findUnique({
+    foundJob = await prisma.Job.findUnique({
       where: {
         Store_PO: {
             PO: poNum,
@@ -390,18 +389,171 @@ buttonEdit.addEventListener('clicked', async () => {
       }
     })
 
-    console.log(foundJob.PO);
-    console.log(foundJob.Store); 
-    console.log(new Date(foundJob.billDate).toDateString());
+    if(foundJob === null)
+    {
+      textBoxFound.setText("Job not found")
+      dateSelector.setDate(QDate.currentDate())
+      textBoxBilled.setText("")
+      textBoxPaid.setText("")
+    }
+    else
+    {
+      let tempBilled = "";
+      let tempPaid = "";
+      if(foundJob.amountBilled != null)
+      {
+        tempBilled = foundJob.amountBilled.toString()
+        if(tempBilled !== "0")
+        {
+          tempBilled = tempBilled.slice(0, tempBilled.length-2) + "." + tempBilled.slice(tempBilled.length-2)
+        }
+      }
+      if(foundJob.amountPaid != null)
+      {
+        tempPaid = foundJob.amountPaid.toString()
+        if(tempPaid !== "0")
+        {
+          tempPaid = tempPaid.slice(0, tempPaid.length-2) + "." + tempPaid.slice(tempPaid.length-2)
+        }
+      }
 
-    let tempBilled = foundJob.amountBilled.toString()
-    tempBilled = tempBilled.slice(0, tempBilled.length-2) + "." + tempBilled.slice(tempBilled.length-2)
-    console.log(tempBilled);
-    console.log(foundJob.amountPaid);
+      let foundDate = new Date(foundJob.billDate)
+      let foundQDate = new QDate( foundDate.getUTCFullYear(), foundDate.getUTCMonth(), foundDate.getUTCDate() )      
+
+      textBoxFound.setText("Found: " + poNum + ", " + storeNum);
+      dateSelector.setDate(foundQDate )
+      textBoxBilled.setText(tempBilled)
+      textBoxPaid.setText(tempPaid)
+    }
+
   });
 
-  const displayJob = new QTextBrowser();
-  displayJob.setReadOnly(true);
+  const textBoxFound = new QLineEdit();
+  textBoxFound.setReadOnly(true);
+
+  const labelDate = new QLabel();
+  labelDate.setObjectName("label");
+  labelDate.setText("Date: ");
+
+  const dateSelector = new QDateEdit();
+  dateSelector.setDate(QDate.currentDate());
+
+  const labelBilled = new QLabel();
+  labelBilled.setObjectName("label");
+  labelBilled.setText("Amount Billed: ");
+
+  const textBoxBilled = new QLineEdit();
+
+  const labelPaid = new QLabel();
+  labelPaid.setObjectName("label");
+  labelPaid.setText("Amount Paid: ");
+
+  const textBoxPaid = new QLineEdit();
+
+  const EditButton = new QPushButton();
+  EditButton.setText('Update');
+  EditButton.addEventListener('clicked', async () => {
+    if(foundJob === null)
+    {
+      textBoxUpdate.setText("No job currently selected")
+    }
+    else
+    {
+      let billedAmount = null;
+      let paidAmount = null;
+
+      let inputBilled = textBoxBilled.displayText();
+      let decimal = inputBilled.indexOf(".");
+      if(inputBilled != "")
+      {
+        if(decimal === -1) //No Decimal Point
+        { 
+          billedAmount = inputBilled + "00" //Convert to pennies for storage.
+        }
+        else 
+        {
+          if(inputBilled.length === decimal+1) //No Chars after decimal
+          {
+            billedAmount = inputBilled.slice(0, decimal) + "00"
+          }
+          else if(inputBilled.length === decimal+2)
+          {
+            billedAmount = inputBilled.slice(0, decimal) + inputBilled.slice(decimal+1) + "0"
+          }
+          else //Two or more chars after decimal
+          {
+            billedAmount = inputBilled.slice(0, decimal) + inputBilled.slice(decimal+1, decimal+3)
+          }
+        }
+
+        if( !(/^\d+$/.test(billedAmount)) )
+        {
+          textBoxUpdate.setText("Invalid amount billed.");
+          return;
+        }
+      }
+
+      let inputPaid = textBoxPaid.displayText();
+      decimal = inputPaid.indexOf(".");
+      if(inputPaid != "")
+      {
+        if(decimal === -1) //No Decimal Point
+        { 
+          paidAmount = inputPaid + "00" //Convert to pennies for storage.
+        }
+        else 
+        {
+          if(inputPaid.length === decimal+1) //No Chars after decimal
+          {
+            paidAmount = inputPaid.slice(0, decimal) + "00"
+          }
+          else if(inputPaid.length === decimal+2)
+          {
+            paidAmount = inputPaid.slice(0, decimal) + inputPaid.slice(decimal+1) + "0"
+          }
+          else //Two or more chars after decimal
+          {
+            paidAmount = inputPaid.slice(0, decimal) + inputPaid.slice(decimal+1, decimal+3)
+          }
+        }
+
+        if( !(/^\d+$/.test(paidAmount)) )
+        {
+          textBoxUpdate.setText("Invalid amount Paid.");
+          return;
+        }
+      }
+
+      let date = new Date(dateSelector.date().toString(1));
+
+      try
+      {
+        let edited = await prisma.Job.update({
+          where: {
+            Store_PO: {
+                PO: foundJob.PO,
+                Store: foundJob.Store
+            }
+          },
+          data: {
+            billDate: date,
+            amountBilled: parseInt(billedAmount),
+            amountPaid: parseInt(paidAmount)
+          }
+        })
+
+        textBoxUpdate.setText("Job successfully edited");
+      }
+      catch(err)
+      {
+        textBoxUpdate.setText("Error. Check log");
+        console.log(err);
+      }
+    }
+  });
+
+  const textBoxUpdate = new QLineEdit();
+  textBoxUpdate.setReadOnly(true);
 
   const ExitButton = new QPushButton();
   ExitButton.setText('Exit');
@@ -417,7 +569,19 @@ buttonEdit.addEventListener('clicked', async () => {
 
   dialogLayout.addWidget(SearchButton);
 
-  dialogLayout.addWidget(displayJob);
+  dialogLayout.addWidget(textBoxFound);
+
+  dialogLayout.addWidget(labelDate);
+  dialogLayout.addWidget(dateSelector);
+
+  dialogLayout.addWidget(labelBilled);
+  dialogLayout.addWidget(textBoxBilled);
+
+  dialogLayout.addWidget(labelPaid);
+  dialogLayout.addWidget(textBoxPaid);
+
+  dialogLayout.addWidget(EditButton);
+  dialogLayout.addWidget(textBoxUpdate);
 
   dialogLayout.addWidget(ExitButton);
     
@@ -442,7 +606,16 @@ buttonView.addEventListener('clicked', async () => {
   dialog.setLayout(dialogLayout);
   dialog.setWindowTitle("View Jobs");
 
-  
+  const displayJobs = new QTextBrowser();
+  displayJobs.setReadOnly(true);
+
+  let allJobs = await prisma.Job.findMany({
+    where: {
+      AND: [
+        
+      ]
+    }
+  })
 
   const ExitButton = new QPushButton();
   ExitButton.setText('Exit');
@@ -452,7 +625,6 @@ buttonView.addEventListener('clicked', async () => {
 
   dialogLayout.addWidget(ExitButton);
     
-
   dialog.setInlineStyle(`
       padding: 10;
       height: 1980px;
