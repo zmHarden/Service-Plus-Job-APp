@@ -1,5 +1,5 @@
-import { QMainWindow, QWidget, QLabel, FlexLayout, QPushButton, QLineEdit, 
-  QDateEdit, QTextBrowser, QCalendarWidget, QDate, QDialog, QBoxLayout } from '@nodegui/nodegui';
+import { QMainWindow, QWidget, QLabel, FlexLayout, QGridLayout, QBoxLayout, QPushButton, QLineEdit, 
+  QDateEdit, QTextBrowser, QCalendarWidget, QDate, QDialog,  } from '@nodegui/nodegui';
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 const prompt = require("prompt-sync")();
@@ -175,7 +175,7 @@ buttonCreate.addEventListener('clicked', async () => {
         {
           paidAmount = inputPaid.slice(0, decimal) + "00"
         }
-        else if(inputPaidlength === decimal+2)
+        else if(inputPaid.length === decimal+2)
         {
           paidAmount = inputPaid.slice(0, decimal) + inputPaid.slice(decimal+1) + "0"
         }
@@ -273,11 +273,10 @@ buttonCreate.addEventListener('clicked', async () => {
   dialog.setInlineStyle(`
     padding: 10;
     height: 990px;
-    background-color: #cc00ff;
     flex-direction: 'column';
     align-items:'center';
     justify-content: 'space-around';
-  `);
+  `); //background-color: #cc00ff;
   //It Doesn't seem to understand how big the text box is, or it caps the default size of the window.
   dialog.resize(dialog.width(), dialog.height() * 1.25) 
 
@@ -602,7 +601,7 @@ buttonView.setText('View Conflicts');
 buttonView.addEventListener('clicked', async () => {
 
   const dialog = new QDialog();
-  const dialogLayout = new FlexLayout()
+  const dialogLayout = new QGridLayout()
   dialog.setLayout(dialogLayout);
   dialog.setWindowTitle("View Jobs");
 
@@ -611,11 +610,55 @@ buttonView.addEventListener('clicked', async () => {
 
   let allJobs = await prisma.Job.findMany({
     where: {
-      AND: [
-        
+      amountBilled: {
+        not: null
+      },
+      amountPaid: {
+        not: null
+      },
+      OR: [
+        {
+          amountBilled: {
+            gt: prisma.Job.fields.amountPaid
+          }
+        },
+        {
+          amountPaid: {
+            gt: prisma.Job.fields.amountBilled
+          }
+        }
       ]
     }
   })
+
+  let jobsList = "";
+  for(let x = 0; x < allJobs.length; x++)
+  {
+    if( Math.abs(allJobs[x].amountBilled - allJobs[x].amountPaid) >= 1000 )
+    {
+      let tempBilled = (allJobs[x].amountBilled).toString();
+      let billedString = tempBilled.slice(0, tempBilled.length-2) + "." + tempBilled.slice(tempBilled.length-2)
+
+      let tempPaid = (allJobs[x].amountPaid).toString();
+      let paidString = tempPaid.slice(0, tempPaid.length-2) + "." + tempPaid.slice(tempPaid.length-2)
+      
+      let dateString = allJobs[x].billDate.toUTCString().slice(0, 16)
+
+      jobsList = jobsList + "PO: " + allJobs[x].PO + "\nStore: " + allJobs[x].Store
+        + "\nAmount Billed: " + billedString + "\nAmount Paid: " + paidString
+        + "\nDate: " + dateString + "\n\n"
+    }
+  }
+
+  if(jobsList === "")
+  {
+    displayJobs.setText("No Jobs currently found that are mismatched")
+  }
+  else
+  {
+    displayJobs.setText(jobsList);
+  }
+  
 
   const ExitButton = new QPushButton();
   ExitButton.setText('Exit');
@@ -623,15 +666,21 @@ buttonView.addEventListener('clicked', async () => {
     dialog.close();
   });
 
-  dialogLayout.addWidget(ExitButton);
+  dialogLayout.addWidget(displayJobs, 0, 0);
+  dialogLayout.addWidget(ExitButton, 1, 0);
     
   dialog.setInlineStyle(`
-      padding: 10;
-      height: 1980px;
-      flex-direction: 'column';
-      align-items:'center';
-      justify-content: 'space-around';
+    padding: 10;  
+    justify-content: 'space-around';
   `);
+  /*
+      height: 900px;
+      flex-direction: 'column';
+      align-items:'center'; //This makes space left and right of the content
+      justify-content: 'space-around'; //This makes space above and below the content
+   */
+  //dialog.resize(dialog.width(), dialog.height())
+  //displayJobs.resize(displayJobs.width(), displayJobs.height())
 
   dialog.exec();
 });
