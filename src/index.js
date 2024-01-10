@@ -1,8 +1,7 @@
-import { QMainWindow, QWidget, QLabel, FlexLayout, QGridLayout, QBoxLayout, QPushButton, QLineEdit, 
-  QDateEdit, QTextBrowser, QCalendarWidget, QDate, QDialog,  } from '@nodegui/nodegui';
+import { QMainWindow, QWidget, QLabel, FlexLayout, QGridLayout, QPushButton, QLineEdit, 
+  QDateEdit, QTextBrowser, QCalendarWidget, QDate, QDialog } from '@nodegui/nodegui';
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
-const prompt = require("prompt-sync")();
 
 const win = new QMainWindow();
 win.setWindowTitle("Service Plus Job Database");
@@ -17,7 +16,7 @@ buttonCreate.setText('Create a Job');
 buttonCreate.addEventListener('clicked', async () => {
 
   const dialog = new QDialog();
-  const dialogLayout = new FlexLayout()
+  const dialogLayout = new FlexLayout();
   dialog.setLayout(dialogLayout);
   dialog.setWindowTitle("Create a Job");
 
@@ -32,6 +31,12 @@ buttonCreate.addEventListener('clicked', async () => {
   labelStore1.setText("Store # (If PO starts with 35): ");
 
   const textBoxStore1 = new QLineEdit();
+
+  const labelInstaller1 = new QLabel();
+  labelInstaller1.setObjectName("label");
+  labelInstaller1.setText("Installer: ");
+
+  const textBoxInstaller1 = new QLineEdit();
 
   const labelDate = new QLabel();
   labelDate.setObjectName("label");
@@ -65,6 +70,7 @@ buttonCreate.addEventListener('clicked', async () => {
     let billedAmount = null;
     let paidAmount = null;
     let date = null;
+    let installerName = null;
     
     if( /^\d*$/.test(inputPO) ) //Regex Checking if input contains only numbers
     {
@@ -159,6 +165,8 @@ buttonCreate.addEventListener('clicked', async () => {
         displayJob.setText("Invalid amount billed. Please re-enter");
         return;
       }
+
+      //Robert, Mark, Steven, John, Aaron, Richard
     }
 
     let inputPaid = textBoxPaid.displayText();
@@ -200,6 +208,8 @@ buttonCreate.addEventListener('clicked', async () => {
 
     date = dateSelector.date().toString(1);
 
+    installerName = textBoxInstaller1.displayText();
+
     try{
 
       await prisma.Job.create({
@@ -208,12 +218,13 @@ buttonCreate.addEventListener('clicked', async () => {
             Store: storeNum,
             billDate: new Date(date),
             amountBilled: parseInt(billedAmount), //Remember, storing dollar amount as cents
-            amountPaid: parseInt(paidAmount)
+            amountPaid: parseInt(paidAmount),
+            installer: installerName
         },
       })
 
       displayJob.setText("Job Successfully Created:\nPO Number: " + poNum 
-      + "\nStore Number: " + storeNum + "\nDate: " + date 
+      + "\nStore Number: " + storeNum + "\nInstaller: " + installerName + "\nDate: " + date 
       + "\nAmount Billed: $" + inputBilled + "\nAmount Paid: $" + inputPaid);
 
     }
@@ -245,6 +256,9 @@ buttonCreate.addEventListener('clicked', async () => {
   dialogLayout.addWidget(labelStore1);
   dialogLayout.addWidget(textBoxStore1);
 
+  dialogLayout.addWidget(labelInstaller1);
+  dialogLayout.addWidget(textBoxInstaller1);
+
   dialogLayout.addWidget(labelDate);
   dialogLayout.addWidget(dateSelector.calendarWidget());
 
@@ -272,17 +286,19 @@ buttonCreate.addEventListener('clicked', async () => {
   
   dialog.setInlineStyle(`
     padding: 10;
-    height: 990px;
+    
     flex-direction: 'column';
     align-items:'center';
     justify-content: 'space-around';
-  `); //background-color: #cc00ff;
+  `); //background-color: #cc00ff; //height: 990px;
   //It Doesn't seem to understand how big the text box is, or it caps the default size of the window.
-  dialog.resize(dialog.width(), dialog.height() * 1.25) 
+  dialog.resize(dialog.width(), dialog.height() * 1.4) 
 
   dialog.exec();
 
 });
+
+//-----------------------------------------------------------------------------------------------------
 
 const buttonEdit = new QPushButton();
 buttonEdit.setText('Edit a Job');
@@ -394,6 +410,7 @@ buttonEdit.addEventListener('clicked', async () => {
       dateSelector.setDate(QDate.currentDate())
       textBoxBilled.setText("")
       textBoxPaid.setText("")
+      textBoxInstaller2.setText("")
     }
     else
     {
@@ -418,17 +435,25 @@ buttonEdit.addEventListener('clicked', async () => {
 
       let foundDate = new Date(foundJob.billDate)
       let foundQDate = new QDate( foundDate.getUTCFullYear(), foundDate.getUTCMonth(), foundDate.getUTCDate() )      
+      let installerName = foundJob.installer;
 
       textBoxFound.setText("Found: " + poNum + ", " + storeNum);
       dateSelector.setDate(foundQDate )
       textBoxBilled.setText(tempBilled)
       textBoxPaid.setText(tempPaid)
+      textBoxInstaller2.setText(installerName)
     }
 
   });
 
   const textBoxFound = new QLineEdit();
   textBoxFound.setReadOnly(true);
+
+  const labelInstaller2 = new QLabel();
+  labelInstaller2.setObjectName("label");
+  labelInstaller2.setText("Installer: ");
+
+  const textBoxInstaller2 = new QLineEdit();
 
   const labelDate = new QLabel();
   labelDate.setObjectName("label");
@@ -570,6 +595,9 @@ buttonEdit.addEventListener('clicked', async () => {
 
   dialogLayout.addWidget(textBoxFound);
 
+  dialogLayout.addWidget(labelInstaller2);
+  dialogLayout.addWidget(textBoxInstaller2);
+
   dialogLayout.addWidget(labelDate);
   dialogLayout.addWidget(dateSelector);
 
@@ -597,18 +625,20 @@ buttonEdit.addEventListener('clicked', async () => {
 });
 
 const buttonView = new QPushButton();
-buttonView.setText('View Conflicts');
+buttonView.setText('View Jobs');
 buttonView.addEventListener('clicked', async () => {
 
   const dialog = new QDialog();
   const dialogLayout = new QGridLayout()
   dialog.setLayout(dialogLayout);
-  dialog.setWindowTitle("View Jobs");
+  dialog.setWindowTitle("View Mismatched Jobs");
 
   const displayJobs = new QTextBrowser();
   displayJobs.setReadOnly(true);
 
-  let allJobs = await prisma.Job.findMany({
+  let allJobs = null;
+
+  allJobs = await prisma.Job.findMany({
     where: {
       amountBilled: {
         not: null
@@ -645,6 +675,7 @@ buttonView.addEventListener('clicked', async () => {
       let dateString = allJobs[x].billDate.toUTCString().slice(0, 16)
 
       jobsList = jobsList + "PO: " + allJobs[x].PO + "\nStore: " + allJobs[x].Store
+        + "\nInstaller: " + allJobs[x].installer 
         + "\nAmount Billed: " + billedString + "\nAmount Paid: " + paidString
         + "\nDate: " + dateString + "\n\n"
     }
