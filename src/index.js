@@ -209,6 +209,11 @@ buttonCreate.addEventListener('clicked', async () => {
     date = dateSelector.date().toString(1);
 
     installerName = textBoxInstaller1.displayText();
+    if(billedAmount !== null && installerName === "")
+    {
+      displayJob.setText("Must enter an Installer for billed jobs");
+      return;
+    }
 
     try{
 
@@ -404,6 +409,8 @@ buttonEdit.addEventListener('clicked', async () => {
       }
     })
 
+    textBoxUpdate.setText("");
+    
     if(foundJob === null)
     {
       textBoxFound.setText("Job not found")
@@ -488,8 +495,11 @@ buttonEdit.addEventListener('clicked', async () => {
 
       let inputBilled = textBoxBilled.displayText();
       let decimal = inputBilled.indexOf(".");
+      let installerName = null;
       if(inputBilled != "")
       {
+        installerName = textBoxInstaller2.displayText();
+
         if(decimal === -1) //No Decimal Point
         { 
           billedAmount = inputBilled + "00" //Convert to pennies for storage.
@@ -513,6 +523,12 @@ buttonEdit.addEventListener('clicked', async () => {
         if( !(/^\d+$/.test(billedAmount)) )
         {
           textBoxUpdate.setText("Invalid amount billed.");
+          return;
+        }
+
+        if(installerName === "")
+        {
+          textBoxUpdate.setText("No Installer selected");
           return;
         }
       }
@@ -562,7 +578,8 @@ buttonEdit.addEventListener('clicked', async () => {
           data: {
             billDate: date,
             amountBilled: parseInt(billedAmount),
-            amountPaid: parseInt(paidAmount)
+            amountPaid: parseInt(paidAmount),
+            installer: installerName
           }
         })
 
@@ -624,6 +641,8 @@ buttonEdit.addEventListener('clicked', async () => {
   dialog.exec();
 });
 
+//------------------------------------------------------------------------------------------
+
 const buttonView = new QPushButton();
 buttonView.setText('View Jobs');
 buttonView.addEventListener('clicked', async () => {
@@ -632,6 +651,8 @@ buttonView.addEventListener('clicked', async () => {
   const dialogLayout = new QGridLayout()
   dialog.setLayout(dialogLayout);
   dialog.setWindowTitle("View Mismatched Jobs");
+
+  
 
   const displayJobs = new QTextBrowser();
   displayJobs.setReadOnly(true);
