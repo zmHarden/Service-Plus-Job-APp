@@ -1,5 +1,5 @@
 import { QMainWindow, QWidget, QLabel, FlexLayout, QGridLayout, QPushButton, QLineEdit, 
-  QDateEdit, QTextBrowser, QCalendarWidget, QDate, QDialog } from '@nodegui/nodegui';
+  QDateEdit, QTextBrowser, QCalendarWidget, QDate, QDialog, QComboBox } from '@nodegui/nodegui';
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
@@ -14,6 +14,8 @@ centralWidget.setLayout(rootLayout);
 const buttonCreate = new QPushButton();
 buttonCreate.setText('Create a Job');
 buttonCreate.addEventListener('clicked', async () => {
+
+  let allInstallers = await prisma.Installers.findMany();
 
   const dialog = new QDialog();
   const dialogLayout = new FlexLayout();
@@ -36,7 +38,13 @@ buttonCreate.addEventListener('clicked', async () => {
   labelInstaller1.setObjectName("label");
   labelInstaller1.setText("Installer: ");
 
-  const textBoxInstaller1 = new QLineEdit();
+  const comboboxInstaller1 = new QComboBox();
+  for(let x = 0; x < allInstallers.length; x++)
+  {
+    comboboxInstaller1.addItem(undefined, allInstallers[x].installer);
+  }
+  comboboxInstaller1.addItem(undefined, "N/A")
+  comboboxInstaller1.setCurrentIndex(allInstallers.length);
 
   const labelDate = new QLabel();
   labelDate.setObjectName("label");
@@ -64,13 +72,13 @@ buttonCreate.addEventListener('clicked', async () => {
   submitButton.setText('Submit');
   submitButton.addEventListener('clicked', async () => {
 
+    displayJob.setText("");
     let inputPO = textBoxPO1.displayText();
     let poNum = null;
     let storeNum = null;
     let billedAmount = null;
     let paidAmount = null;
     let date = null;
-    let installerName = null;
     
     if( /^\d*$/.test(inputPO) ) //Regex Checking if input contains only numbers
     {
@@ -166,7 +174,6 @@ buttonCreate.addEventListener('clicked', async () => {
         return;
       }
 
-      //Robert, Mark, Steven, John, Aaron, Richard
     }
 
     let inputPaid = textBoxPaid.displayText();
@@ -208,29 +215,36 @@ buttonCreate.addEventListener('clicked', async () => {
 
     date = dateSelector.date().toString(1);
 
-    installerName = textBoxInstaller1.displayText();
-    if(billedAmount !== null && installerName === "")
+    let installerId = comboboxInstaller1.currentIndex();
+    if(billedAmount !== null)
     {
-      displayJob.setText("Must enter an Installer for billed jobs");
-      return;
+      if(installerId === allInstallers.length)
+      {
+        displayJob.setText("Must enter an Installer for billed jobs");
+        return;
+      }
+    }
+    else
+    {
+      installerId = null;
     }
 
     try{
-
+      
       await prisma.Job.create({
         data: {
             PO: poNum,
-            Store: storeNum,
+            StoreId: storeNum,
             billDate: new Date(date),
             amountBilled: parseInt(billedAmount), //Remember, storing dollar amount as cents
             amountPaid: parseInt(paidAmount),
-            installer: installerName
+            installerId: installerId + 1 //MySQL Ids start at 1, not 0
         },
       })
 
       displayJob.setText("Job Successfully Created:\nPO Number: " + poNum 
-      + "\nStore Number: " + storeNum + "\nInstaller: " + installerName + "\nDate: " + date 
-      + "\nAmount Billed: $" + inputBilled + "\nAmount Paid: $" + inputPaid);
+      + "\nStore Number: " + storeNum + "\nInstaller: " + allInstallers[installerId].installer  
+      + "\nDate: " + date + "\nAmount Billed: $" + inputBilled + "\nAmount Paid: $" + inputPaid);
 
     }
     catch(err){
@@ -262,21 +276,10 @@ buttonCreate.addEventListener('clicked', async () => {
   dialogLayout.addWidget(textBoxStore1);
 
   dialogLayout.addWidget(labelInstaller1);
-  dialogLayout.addWidget(textBoxInstaller1);
+  dialogLayout.addWidget(comboboxInstaller1);
 
   dialogLayout.addWidget(labelDate);
   dialogLayout.addWidget(dateSelector.calendarWidget());
-
-  //Trying to implement two text inputs side-by-side
-  /*const boxWidget = new QWidget();
-  const boxLayout = new QBoxLayout(0, dialog);
-  boxWidget.setLayout(boxLayout);
-
-  boxLayout.addWidget(labelBilled);
-  boxLayout.addWidget(textBoxBilled);
-  boxLayout.addWidget(labelPaid);
-  boxLayout.addWidget(textBoxPaid);
-  dialogLayout.addWidget(boxWidget);*/
 
   dialogLayout.addWidget(labelBilled);
   dialogLayout.addWidget(textBoxBilled);
@@ -299,7 +302,8 @@ buttonCreate.addEventListener('clicked', async () => {
   //It Doesn't seem to understand how big the text box is, or it caps the default size of the window.
   dialog.resize(dialog.width(), dialog.height() * 1.4) 
 
-  dialog.exec();
+  dialog.setModal(true);
+  dialog.show();
 
 });
 
@@ -410,7 +414,7 @@ buttonEdit.addEventListener('clicked', async () => {
     })
 
     textBoxUpdate.setText("");
-    
+
     if(foundJob === null)
     {
       textBoxFound.setText("Job not found")
@@ -461,6 +465,13 @@ buttonEdit.addEventListener('clicked', async () => {
   labelInstaller2.setText("Installer: ");
 
   const textBoxInstaller2 = new QLineEdit();
+  /*const comboboxInstaller2 = new QComboBox();
+  for(let x = 0; x < allInstallers.length; x++)
+  {
+    comboboxInstaller2.addItem(undefined, allInstallers[x].installer);
+  }
+  comboboxInstaller2.addItem(undefined, "N/A")
+  comboboxInstaller2.setCurrentIndex(allInstallers.length);*/
 
   const labelDate = new QLabel();
   labelDate.setObjectName("label");
@@ -638,7 +649,8 @@ buttonEdit.addEventListener('clicked', async () => {
   `);
   dialog.resize(dialog.width(), dialog.height() /** 1.25*/) 
 
-  dialog.exec();
+  dialog.setModal(true);
+  dialog.show();
 });
 
 //------------------------------------------------------------------------------------------
@@ -734,7 +746,8 @@ buttonView.addEventListener('clicked', async () => {
   //dialog.resize(dialog.width(), dialog.height())
   //displayJobs.resize(displayJobs.width(), displayJobs.height())
 
-  dialog.exec();
+  dialog.setModal(true);
+  dialog.show();
 });
 
 rootLayout.addWidget(buttonCreate);
