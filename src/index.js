@@ -314,6 +314,7 @@ buttonEdit.setText('Edit a Job');
 buttonEdit.addEventListener('clicked', async () => {
   
   let foundJob = null;
+  let allInstallers = await prisma.Installers.findMany();
 
   const dialog = new QDialog();
   const dialogLayout = new FlexLayout()
@@ -406,9 +407,9 @@ buttonEdit.addEventListener('clicked', async () => {
 
     foundJob = await prisma.Job.findUnique({
       where: {
-        Store_PO: {
+        StoreId_PO: {
             PO: poNum,
-            Store: storeNum
+            StoreId: storeNum
         }
       }
     })
@@ -421,7 +422,7 @@ buttonEdit.addEventListener('clicked', async () => {
       dateSelector.setDate(QDate.currentDate())
       textBoxBilled.setText("")
       textBoxPaid.setText("")
-      textBoxInstaller2.setText("")
+      comboboxInstaller2.setCurrentIndex(allInstallers.length)
     }
     else
     {
@@ -446,13 +447,13 @@ buttonEdit.addEventListener('clicked', async () => {
 
       let foundDate = new Date(foundJob.billDate)
       let foundQDate = new QDate( foundDate.getUTCFullYear(), foundDate.getUTCMonth(), foundDate.getUTCDate() )      
-      let installerName = foundJob.installer;
+      let installerId = foundJob.installerId - 1; //Convert from Id to Index (Start from 1 to 0)
 
       textBoxFound.setText("Found: " + poNum + ", " + storeNum);
       dateSelector.setDate(foundQDate )
       textBoxBilled.setText(tempBilled)
       textBoxPaid.setText(tempPaid)
-      textBoxInstaller2.setText(installerName)
+      comboboxInstaller2.setCurrentIndex(installerId)
     }
 
   });
@@ -464,14 +465,13 @@ buttonEdit.addEventListener('clicked', async () => {
   labelInstaller2.setObjectName("label");
   labelInstaller2.setText("Installer: ");
 
-  const textBoxInstaller2 = new QLineEdit();
-  /*const comboboxInstaller2 = new QComboBox();
+  const comboboxInstaller2 = new QComboBox();
   for(let x = 0; x < allInstallers.length; x++)
   {
     comboboxInstaller2.addItem(undefined, allInstallers[x].installer);
   }
   comboboxInstaller2.addItem(undefined, "N/A")
-  comboboxInstaller2.setCurrentIndex(allInstallers.length);*/
+  comboboxInstaller2.setCurrentIndex(allInstallers.length);
 
   const labelDate = new QLabel();
   labelDate.setObjectName("label");
@@ -506,10 +506,10 @@ buttonEdit.addEventListener('clicked', async () => {
 
       let inputBilled = textBoxBilled.displayText();
       let decimal = inputBilled.indexOf(".");
-      let installerName = null;
+      let installerId = null;
       if(inputBilled != "")
       {
-        installerName = textBoxInstaller2.displayText();
+        installerId = comboboxInstaller2.currentIndex();
 
         if(decimal === -1) //No Decimal Point
         { 
@@ -537,7 +537,7 @@ buttonEdit.addEventListener('clicked', async () => {
           return;
         }
 
-        if(installerName === "")
+        if(installerId === allInstallers.length)
         {
           textBoxUpdate.setText("No Installer selected");
           return;
@@ -581,16 +581,16 @@ buttonEdit.addEventListener('clicked', async () => {
       {
         let edited = await prisma.Job.update({
           where: {
-            Store_PO: {
+            StoreId_PO: {
                 PO: foundJob.PO,
-                Store: foundJob.Store
+                StoreId: foundJob.StoreId
             }
           },
           data: {
             billDate: date,
             amountBilled: parseInt(billedAmount),
             amountPaid: parseInt(paidAmount),
-            installer: installerName
+            installerId: installerId + 1 //Reconvert to start from 1
           }
         })
 
@@ -624,7 +624,7 @@ buttonEdit.addEventListener('clicked', async () => {
   dialogLayout.addWidget(textBoxFound);
 
   dialogLayout.addWidget(labelInstaller2);
-  dialogLayout.addWidget(textBoxInstaller2);
+  dialogLayout.addWidget(comboboxInstaller2);
 
   dialogLayout.addWidget(labelDate);
   dialogLayout.addWidget(dateSelector);
