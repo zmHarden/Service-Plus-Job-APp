@@ -16,6 +16,14 @@ buttonCreate.setText('Create a Job');
 buttonCreate.addEventListener('clicked', async () => {
 
   let allInstallers = await prisma.Installers.findMany();
+  let storeNumbers = await prisma.Stores.findMany();
+  let storeNumberMap = new Map();
+  for(let x = 0; x < storeNumbers.length; x++)
+  {
+    //Last two digits of Store Number match first two of PO number, used later to match PO to Store
+    let ident = ((storeNumbers[x].Store).toString()).slice(-2);
+    storeNumberMap.set(ident, storeNumbers[x].Store);
+  }
 
   const dialog = new QDialog();
   const dialogLayout = new FlexLayout();
@@ -117,27 +125,12 @@ buttonCreate.addEventListener('clicked', async () => {
     }
     else
     {
-      let ident = inputPO.substring(0, 3); //First three numbers tell us the store number
-      if(ident === "224" || ident === "225"){storeNum = 622}
-      else if(ident === "254" || ident === "255"){storeNum = 625}
-      else if(ident === "274" || ident === "275"){storeNum = 627}
-      else if(ident === "284" || ident === "285"){storeNum = 628}
-      else if(ident === "304" || ident === "305"){storeNum = 630}
-      else if(ident === "324" || ident === "325"){storeNum = 632}
-      else if(ident === "394" || ident === "395"){storeNum = 639}
-      else if(ident === "404" || ident === "405"){storeNum = 640}
-      else if(ident === "424" || ident === "425"){storeNum = 642}
-      else if(ident === "074" || ident === "075"){storeNum = 1007}
-      else if(ident === "094" || ident === "095"){storeNum = 1009}
-      else if(ident === "174" || ident === "174"){storeNum = 1017}
-      else if(ident === "414" || ident === "415"){storeNum = 1041}
-      else if(ident === "924" || ident === "925"){storeNum = 1092}
-      else if(ident === "614" || ident === "615"){storeNum = 1861}
-      else if(ident === "034" || ident === "035"){storeNum = 6603}
-      else if(ident === "214" || ident === "215"){storeNum = 6621}
-      else if(ident === "364" || ident === "365"){storeNum = 6636}
-      else if(ident === "724" || ident === "725"){storeNum = 6672}
-      else
+      let ident = inputPO.substring(0, 2); //First two numbers of PO tell us the store number
+      if (storeNumberMap.has(ident)) 
+      {
+        storeNum = storeNumberMap.get(ident);
+      } 
+      else 
       {
         displayJob.setText("Store Number not found. Invalid PO. Please Re-enter.");
         return;
@@ -299,9 +292,9 @@ buttonCreate.addEventListener('clicked', async () => {
     align-items:'center';
     justify-content: 'space-around';
   `); //background-color: #cc00ff; //height: 990px;
+  dialog.setMinimumSize(400, 500)
   //It Doesn't seem to understand how big the text box is, or it caps the default size of the window.
   dialog.resize(dialog.width(), dialog.height() * 1.4) 
-
   dialog.setModal(true);
   dialog.show();
 
@@ -315,6 +308,14 @@ buttonEdit.addEventListener('clicked', async () => {
   
   let foundJob = null;
   let allInstallers = await prisma.Installers.findMany();
+  let storeNumbers = await prisma.Stores.findMany();
+  let storeNumberMap = new Map();
+  for(let x = 0; x < storeNumbers.length; x++)
+  {
+    //Last two digits of Store Number match first two of PO number, used later to match PO to Store
+    let ident = ((storeNumbers[x].Store).toString()).slice(-2);
+    storeNumberMap.set(ident, storeNumbers[x].Store);
+  }
 
   const dialog = new QDialog();
   const dialogLayout = new FlexLayout()
@@ -340,6 +341,11 @@ buttonEdit.addEventListener('clicked', async () => {
     let inputPO = textBoxPO1.displayText();
     let poNum = null;
     let storeNum = null;
+    textBoxBilled.setText("");
+    textBoxPaid.setText("");
+    dateSelector.setDate(QDate.currentDate());
+    comboboxInstaller2.setCurrentIndex(allInstallers.length);
+    foundJob = null;
     
     if( /^\d*$/.test(inputPO) ) //Regex Checking if input contains only numbers
     {
@@ -378,29 +384,14 @@ buttonEdit.addEventListener('clicked', async () => {
     }
     else
     {
-      let ident = inputPO.substring(0, 3); //First three numbers tell us the store number
-      if(ident === "224" || ident === "225"){storeNum = 622}
-      else if(ident === "254" || ident === "255"){storeNum = 625}
-      else if(ident === "274" || ident === "275"){storeNum = 627}
-      else if(ident === "284" || ident === "285"){storeNum = 628}
-      else if(ident === "304" || ident === "305"){storeNum = 630}
-      else if(ident === "324" || ident === "325"){storeNum = 632}
-      else if(ident === "394" || ident === "395"){storeNum = 639}
-      else if(ident === "404" || ident === "405"){storeNum = 640}
-      else if(ident === "424" || ident === "425"){storeNum = 642}
-      else if(ident === "074" || ident === "075"){storeNum = 1007}
-      else if(ident === "094" || ident === "095"){storeNum = 1009}
-      else if(ident === "174" || ident === "174"){storeNum = 1017}
-      else if(ident === "414" || ident === "415"){storeNum = 1041}
-      else if(ident === "924" || ident === "925"){storeNum = 1092}
-      else if(ident === "614" || ident === "615"){storeNum = 1861}
-      else if(ident === "034" || ident === "035"){storeNum = 6603}
-      else if(ident === "214" || ident === "215"){storeNum = 6621}
-      else if(ident === "364" || ident === "365"){storeNum = 6636}
-      else if(ident === "724" || ident === "725"){storeNum = 6672}
-      else
+      let ident = inputPO.substring(0, 2); //First three numbers tell us the store number
+      if (storeNumberMap.has(ident)) 
       {
-        textBoxFound.setText("Store # not found");
+        storeNum = storeNumberMap.get(ident);
+      } 
+      else 
+      {
+        displayJob.setText("Store Number not found. Invalid PO. Please Re-enter.");
         return;
       }
     }
@@ -419,10 +410,6 @@ buttonEdit.addEventListener('clicked', async () => {
     if(foundJob === null)
     {
       textBoxFound.setText("Job not found")
-      dateSelector.setDate(QDate.currentDate())
-      textBoxBilled.setText("")
-      textBoxPaid.setText("")
-      comboboxInstaller2.setCurrentIndex(allInstallers.length)
     }
     else
     {
@@ -647,6 +634,7 @@ buttonEdit.addEventListener('clicked', async () => {
       align-items:'center';
       justify-content: 'space-around';
   `);
+  dialog.setMinimumSize(400, 500)
   dialog.resize(dialog.width(), dialog.height() /** 1.25*/) 
 
   dialog.setModal(true);
@@ -664,7 +652,10 @@ buttonView.addEventListener('clicked', async () => {
   dialog.setLayout(dialogLayout);
   dialog.setWindowTitle("View Mismatched Jobs");
 
-  
+  /*Buttons go here*/
+  const buttonMismatch = new QPushButton();
+  buttonView.setText('View Jobs');
+  buttonView.addEventListener('clicked', async () => {});
 
   const displayJobs = new QTextBrowser();
   displayJobs.setReadOnly(true);
@@ -749,6 +740,8 @@ buttonView.addEventListener('clicked', async () => {
   dialog.setModal(true);
   dialog.show();
 });
+
+//-----------------------------------------------------------------------------------------------
 
 rootLayout.addWidget(buttonCreate);
 rootLayout.addWidget(buttonEdit);
