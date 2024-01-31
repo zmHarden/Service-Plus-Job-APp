@@ -650,69 +650,93 @@ buttonView.addEventListener('clicked', async () => {
   const dialog = new QDialog();
   const dialogLayout = new QGridLayout()
   dialog.setLayout(dialogLayout);
-  dialog.setWindowTitle("View Mismatched Jobs");
+  dialog.setWindowTitle("View Jobs");
 
-  /*Buttons go here*/
-  const buttonMismatch = new QPushButton();
-  buttonView.setText('View Jobs');
-  buttonView.addEventListener('clicked', async () => {});
+  let installers = await prisma.installers.findMany();
+  let stores = await prisma.stores.findMany();
+
+  const comboboxInstaller3 = new QComboBox();
+  for(let x = 0; x < installers.length; x++)
+  {
+    comboboxInstaller3.addItem(undefined, installers[x].installer);
+  }
+  comboboxInstaller3.addItem(undefined, "N/A")
+  comboboxInstaller3.setCurrentIndex(installers.length);
+
+  const comboboxStore3 = new QComboBox();
+  for(let x = 0; x < stores.length; x++)
+  {
+    comboboxStore3.addItem(undefined, stores[x].Store.toString());
+  }
+  comboboxStore3.addItem(undefined, "No Store selected")
+  comboboxStore3.setCurrentIndex(stores.length);
+
+  const noPayButton = new QPushButton();
+  noPayButton.setText('Unpaid Jobs');
+  noPayButton.addEventListener('clicked', async () => {
+
+  });
+
+  const mismatchedButton = new QPushButton();
+  mismatchedButton.setText('Mismatched Jobs');
+  mismatchedButton.addEventListener('clicked', async () => {
+
+    let mismatchedJobs = null;
+
+    mismatchedJobs = await prisma.Job.findMany({
+      where: {
+        amountBilled: {
+          not: null,
+          not: prisma.Job.fields.amountPaid
+        },
+        amountPaid: {
+          not: null
+        },
+        amountBilled: {
+          
+        }
+      }
+    })
+
+    let jobsList = "";
+    for(let x = 0; x < mismatchedJobs.length; x++)
+    {
+      if( Math.abs(mismatchedJobs[x].amountBilled - mismatchedJobs[x].amountPaid) >= 1000 )
+      {
+        let tempBilled = (mismatchedJobs[x].amountBilled).toString();
+        let billedString = tempBilled.slice(0, tempBilled.length-2) + "." + tempBilled.slice(tempBilled.length-2)
+
+        let tempPaid = (mismatchedJobs[x].amountPaid).toString();
+        let paidString = tempPaid.slice(0, tempPaid.length-2) + "." + tempPaid.slice(tempPaid.length-2)
+        
+        let dateString = mismatchedJobs[x].billDate.toUTCString().slice(0, 16)
+
+        jobsList = jobsList + "PO: " + mismatchedJobs[x].PO + "\nStore: " + mismatchedJobs[x].StoreId
+          + "\nInstaller: " + installers[mismatchedJobs[x].installerId - 1].installer
+          + "\nAmount Billed: " + billedString + "\nAmount Paid: " + paidString
+          + "\nDate: " + dateString + "\n\n"
+      }
+    }
+
+    if(jobsList === "")
+    {
+      displayJobs.setText("No Jobs currently found that are mismatched")
+    }
+    else
+    {
+      displayJobs.setText(jobsList);
+    }
+    
+  });
+
+  const noBillButton = new QPushButton();
+  noBillButton.setText('Unbilled Jobs');
+  noBillButton.addEventListener('clicked', async () => {
+    
+  });
 
   const displayJobs = new QTextBrowser();
   displayJobs.setReadOnly(true);
-
-  let allJobs = null;
-
-  allJobs = await prisma.Job.findMany({
-    where: {
-      amountBilled: {
-        not: null
-      },
-      amountPaid: {
-        not: null
-      },
-      OR: [
-        {
-          amountBilled: {
-            gt: prisma.Job.fields.amountPaid
-          }
-        },
-        {
-          amountPaid: {
-            gt: prisma.Job.fields.amountBilled
-          }
-        }
-      ]
-    }
-  })
-
-  let jobsList = "";
-  for(let x = 0; x < allJobs.length; x++)
-  {
-    if( Math.abs(allJobs[x].amountBilled - allJobs[x].amountPaid) >= 1000 )
-    {
-      let tempBilled = (allJobs[x].amountBilled).toString();
-      let billedString = tempBilled.slice(0, tempBilled.length-2) + "." + tempBilled.slice(tempBilled.length-2)
-
-      let tempPaid = (allJobs[x].amountPaid).toString();
-      let paidString = tempPaid.slice(0, tempPaid.length-2) + "." + tempPaid.slice(tempPaid.length-2)
-      
-      let dateString = allJobs[x].billDate.toUTCString().slice(0, 16)
-
-      jobsList = jobsList + "PO: " + allJobs[x].PO + "\nStore: " + allJobs[x].Store
-        + "\nInstaller: " + allJobs[x].installer 
-        + "\nAmount Billed: " + billedString + "\nAmount Paid: " + paidString
-        + "\nDate: " + dateString + "\n\n"
-    }
-  }
-
-  if(jobsList === "")
-  {
-    displayJobs.setText("No Jobs currently found that are mismatched")
-  }
-  else
-  {
-    displayJobs.setText(jobsList);
-  }
   
 
   const ExitButton = new QPushButton();
@@ -721,21 +745,24 @@ buttonView.addEventListener('clicked', async () => {
     dialog.close();
   });
 
-  dialogLayout.addWidget(displayJobs, 0, 0);
-  dialogLayout.addWidget(ExitButton, 1, 0);
+
+  
+
+  dialogLayout.addWidget(comboboxInstaller3, 0, 0, 1, 1);
+  dialogLayout.addWidget(comboboxStore3, 0, 2, 1, 1); 
+  dialogLayout.addWidget(noPayButton, 1, 0);
+  dialogLayout.addWidget(mismatchedButton, 1, 1);
+  dialogLayout.addWidget(noBillButton, 1, 2);
+  dialogLayout.addWidget(displayJobs, 2, 0, 1, 3); //Row 2, Column 0, Stretch over 1 row, 3 columns
+  dialogLayout.addWidget(ExitButton, 3, 0, 1, 3); 
+
+  dialogLayout.setColumnStretch(0, 1);
+  dialogLayout.setColumnStretch(1, 1); 
+  dialogLayout.setColumnStretch(2, 1);
     
   dialog.setInlineStyle(`
     padding: 10;  
-    justify-content: 'space-around';
   `);
-  /*
-      height: 900px;
-      flex-direction: 'column';
-      align-items:'center'; //This makes space left and right of the content
-      justify-content: 'space-around'; //This makes space above and below the content
-   */
-  //dialog.resize(dialog.width(), dialog.height())
-  //displayJobs.resize(displayJobs.width(), displayJobs.height())
 
   dialog.setModal(true);
   dialog.show();
