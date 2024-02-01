@@ -697,6 +697,49 @@ buttonView.addEventListener('clicked', async () => {
   noPayButton.setText('Unpaid Jobs');
   noPayButton.addEventListener('clicked', async () => {
 
+    let unpaidJobs = null;
+
+    unpaidJobs = await prisma.Job.findMany({
+      where: {
+        amountPaid:null 
+      }
+    })
+
+    let jobsList = "";
+    for(let x = 0; x < unpaidJobs.length; x++)
+    {
+      //If an installer is select, but doesn't match the current job, skip it.
+      if(comboboxInstaller3.currentIndex() !== installers.length && 
+      comboboxInstaller3.currentIndex()+1 !== unpaidJobs[x].installerId)
+      {
+        continue;
+      }
+      //If a store is selected, but doesn't match the current job, skip it.
+      if(comboboxStore3.currentIndex() !== stores.length &&
+      stores[comboboxStore3.currentIndex()].Store !== unpaidJobs[x].StoreId)
+      {
+        continue;
+      }
+
+      let tempBilled = (unpaidJobs[x].amountBilled).toString();
+      let billedString = tempBilled.slice(0, tempBilled.length-2) + "." + tempBilled.slice(tempBilled.length-2)
+      
+      let dateString = unpaidJobs[x].billDate.toUTCString().slice(0, 16)
+
+      jobsList = jobsList + "PO: " + unpaidJobs[x].PO + "\nStore: " + unpaidJobs[x].StoreId
+        + "\nInstaller: " + installers[unpaidJobs[x].installerId - 1].installer
+        + "\nAmount Billed: " + billedString + "\nDate: " + dateString + "\n\n"
+    }
+
+    if(jobsList === "")
+    {
+      displayJobs.setText("No unpaid jobs found")
+    }
+    else
+    {
+      displayJobs.setText(jobsList);
+    }
+
   });
 
   const mismatchedButton = new QPushButton();
@@ -728,8 +771,21 @@ buttonView.addEventListener('clicked', async () => {
     })
 
     let jobsList = "";
+
     for(let x = 0; x < mismatchedJobs.length; x++)
     {
+      if(comboboxInstaller3.currentIndex() !== installers.length && 
+      comboboxInstaller3.currentIndex()+1 !== mismatchedJobs[x].installerId)
+      {
+        continue;
+      }
+      if(comboboxStore3.currentIndex() !== stores.length &&
+      stores[comboboxStore3.currentIndex()].Store !== mismatchedJobs[x].StoreId)
+      {
+        continue;
+      }
+
+      //Check if the job's pay and bill differ by $10 or more.
       if( Math.abs(mismatchedJobs[x].amountBilled - mismatchedJobs[x].amountPaid) >= 1000 )
       {
         let tempBilled = (mismatchedJobs[x].amountBilled).toString();
@@ -749,7 +805,7 @@ buttonView.addEventListener('clicked', async () => {
 
     if(jobsList === "")
     {
-      displayJobs.setText("No Jobs currently found that are mismatched")
+      displayJobs.setText("No mismatched jobs found")
     }
     else
     {
@@ -774,14 +830,11 @@ buttonView.addEventListener('clicked', async () => {
     dialog.close();
   });
 
-
-  
-
-  dialogLayout.addWidget(noPayButton, 0, 0);
-  dialogLayout.addWidget(mismatchedButton, 0, 1);
-  dialogLayout.addWidget(noBillButton, 0, 2);
-  dialogLayout.addWidget(comboboxInstaller3, 1, 0, 1, 1);
-  dialogLayout.addWidget(comboboxStore3, 1, 2, 1, 1); 
+  dialogLayout.addWidget(comboboxInstaller3, 0, 0, 1, 1);
+  dialogLayout.addWidget(comboboxStore3, 0, 2, 1, 1); 
+  dialogLayout.addWidget(noPayButton, 1, 0);
+  dialogLayout.addWidget(mismatchedButton, 1, 1);
+  dialogLayout.addWidget(noBillButton, 1, 2);
   dialogLayout.addWidget(displayJobs, 2, 0, 1, 3); //Row 2, Column 0, Stretch over 1 row, 3 columns
   dialogLayout.addWidget(ExitButton, 3, 0, 1, 3); 
 
