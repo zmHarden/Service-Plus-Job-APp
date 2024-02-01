@@ -509,11 +509,10 @@ buttonEdit.addEventListener('clicked', async () => {
 
       let inputBilled = textBoxBilled.displayText();
       let decimal = inputBilled.indexOf(".");
-      let installerId = null;
-      if(inputBilled != "")
+      let installerId = comboboxInstaller2.currentIndex();
+      let mySQLId = installerId + 1 //Convert to start-from-1 index
+      if(inputBilled != "") //If there is a billed amount
       {
-        installerId = comboboxInstaller2.currentIndex();
-
         if(decimal === -1) //No Decimal Point
         { 
           billedAmount = inputBilled + "00" //Convert to pennies for storage.
@@ -544,6 +543,13 @@ buttonEdit.addEventListener('clicked', async () => {
         {
           textBoxUpdate.setText("No Installer selected");
           return;
+        }
+      }
+      else
+      {
+        if(installerId === allInstallers.length)
+        {
+          mySQLId = null;
         }
       }
 
@@ -593,7 +599,7 @@ buttonEdit.addEventListener('clicked', async () => {
             billDate: date,
             amountBilled: parseInt(billedAmount),
             amountPaid: parseInt(paidAmount),
-            installerId: installerId + 1 //Reconvert to start from 1
+            installerId: mySQLId
           }
         })
 
