@@ -209,21 +209,31 @@ buttonCreate.addEventListener('clicked', async () => {
     date = dateSelector.date().toString(1);
 
     let installerId = comboboxInstaller1.currentIndex();
-    if(billedAmount !== null)
+    //Shift the index to start from 1 like MySQL
+    let databaseInstaller = installerId + 1;
+
+    if(installerId === allInstallers.length)
     {
-      if(installerId === allInstallers.length)
+      if(billedAmount !== null)
       {
         displayJob.setText("Must enter an Installer for billed jobs");
         return;
       }
+      else
+      {
+        //If we have n/a selected as the installer, but we aren't billing, we can 
+        //store the installer as null.
+        databaseInstaller = null;
+        installerId = "N/A"
+      }
     }
     else
     {
-      installerId = null;
+      installerId = allInstallers[installerId].installer
     }
 
     try{
-      
+
       await prisma.Job.create({
         data: {
             PO: poNum,
@@ -231,13 +241,19 @@ buttonCreate.addEventListener('clicked', async () => {
             billDate: new Date(date),
             amountBilled: parseInt(billedAmount), //Remember, storing dollar amount as cents
             amountPaid: parseInt(paidAmount),
-            installerId: installerId + 1 //MySQL Ids start at 1, not 0
+            installerId: databaseInstaller
         },
       })
 
       displayJob.setText("Job Successfully Created:\nPO Number: " + poNum 
-      + "\nStore Number: " + storeNum + "\nInstaller: " + allInstallers[installerId].installer  
+      + "\nStore Number: " + storeNum + "\nInstaller: " + installerId  
       + "\nDate: " + date + "\nAmount Billed: $" + inputBilled + "\nAmount Paid: $" + inputPaid);
+      textBoxPO1.setText("");
+      textBoxStore1.selectedText("");
+      comboboxInstaller1.setCurrentIndex(allInstallers.length);
+      dateSelector.setDate(QDate.currentDate());
+      textBoxBilled.setText("");
+      textBoxPaid.setText("");
 
     }
     catch(err){
@@ -685,15 +701,22 @@ buttonView.addEventListener('clicked', async () => {
 
     mismatchedJobs = await prisma.Job.findMany({
       where: {
-        amountBilled: {
-          not: null,
-          not: prisma.Job.fields.amountPaid
-        },
-        amountPaid: {
-          not: null
-        },
-        amountBilled: {
-          
+        AND: [
+          {
+            amountBilled: {
+              not: null,
+            }
+          },
+          {
+            amountPaid: {
+              not: null
+            }
+          }
+        ],
+        NOT: {
+          amountBilled: {
+            equals: prisma.job.fields.amountPaid
+          }
         }
       }
     })
@@ -748,11 +771,11 @@ buttonView.addEventListener('clicked', async () => {
 
   
 
-  dialogLayout.addWidget(comboboxInstaller3, 0, 0, 1, 1);
-  dialogLayout.addWidget(comboboxStore3, 0, 2, 1, 1); 
-  dialogLayout.addWidget(noPayButton, 1, 0);
-  dialogLayout.addWidget(mismatchedButton, 1, 1);
-  dialogLayout.addWidget(noBillButton, 1, 2);
+  dialogLayout.addWidget(noPayButton, 0, 0);
+  dialogLayout.addWidget(mismatchedButton, 0, 1);
+  dialogLayout.addWidget(noBillButton, 0, 2);
+  dialogLayout.addWidget(comboboxInstaller3, 1, 0, 1, 1);
+  dialogLayout.addWidget(comboboxStore3, 1, 2, 1, 1); 
   dialogLayout.addWidget(displayJobs, 2, 0, 1, 3); //Row 2, Column 0, Stretch over 1 row, 3 columns
   dialogLayout.addWidget(ExitButton, 3, 0, 1, 3); 
 
