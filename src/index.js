@@ -249,7 +249,7 @@ buttonCreate.addEventListener('clicked', async () => {
       + "\nStore Number: " + storeNum + "\nInstaller: " + installerId  
       + "\nDate: " + date + "\nAmount Billed: $" + inputBilled + "\nAmount Paid: $" + inputPaid);
       textBoxPO1.setText("");
-      textBoxStore1.selectedText("");
+      textBoxStore1.setText("");
       comboboxInstaller1.setCurrentIndex(allInstallers.length);
       dateSelector.setDate(QDate.currentDate());
       textBoxBilled.setText("");
@@ -508,9 +508,17 @@ buttonEdit.addEventListener('clicked', async () => {
       let paidAmount = null;
 
       let inputBilled = textBoxBilled.displayText();
-      let decimal = inputBilled.indexOf(".");
+      let inputPaid = textBoxPaid.displayText();
       let installerId = comboboxInstaller2.currentIndex();
       let mySQLId = installerId + 1 //Convert to start-from-1 index
+
+      if(inputBilled === "" && inputPaid ==="")
+      {
+        textBoxUpdate.setText("Job must be billed or paid");
+        return;
+      }
+
+      let decimal = inputBilled.indexOf(".");
       if(inputBilled != "") //If there is a billed amount
       {
         if(decimal === -1) //No Decimal Point
@@ -553,7 +561,6 @@ buttonEdit.addEventListener('clicked', async () => {
         }
       }
 
-      let inputPaid = textBoxPaid.displayText();
       decimal = inputPaid.indexOf(".");
       if(inputPaid != "")
       {
@@ -817,7 +824,40 @@ buttonView.addEventListener('clicked', async () => {
   const noBillButton = new QPushButton();
   noBillButton.setText('Unbilled Jobs');
   noBillButton.addEventListener('clicked', async () => {
-    
+    let unbilledJobs = await prisma.Job.findMany({
+      where: 
+      {
+        amountBilled: null
+      }
+    })
+
+    let jobsList = "";
+    for(let x = 0; x < unbilledJobs.length; x++)
+    {
+      if(comboboxStore3.currentIndex() !== stores.length &&
+      stores[comboboxStore3.currentIndex()].Store !== unbilledJobs[x].StoreId)
+      {
+        continue;
+      }
+
+      let tempPaid = (unbilledJobs[x].amountPaid).toString();
+      let paidString = tempPaid.slice(0, tempPaid.length-2) + "." + tempPaid.slice(tempPaid.length-2)
+
+      let dateString = unbilledJobs[x].billDate.toUTCString().slice(0, 16)
+
+      jobsList = jobsList + "PO: " + unbilledJobs[x].PO + "\nStore: " + unbilledJobs[x].StoreId
+        + "\nAmount Paid: " + paidString + "\nDate: " + dateString + "\n\n"
+    }
+
+    if(jobsList === "")
+    {
+      displayJobs.setText("No unbilled jobs found")
+    }
+    else
+    {
+      displayJobs.setText(jobsList);
+    }
+
   });
 
   const displayJobs = new QTextBrowser();
@@ -879,3 +919,7 @@ win.setStyleSheet(
 win.show();
 
 (global).win = win;
+
+//Tread Blinds.com (BDC) and HomeDepot.com (HDC) as stores
+//BDC jobs start with 1, and are 8 digits. For jobs starting with 17, ask for store number (1017 or BDC [case insensitive])
+//HDC jobs start with W and are 10 digits. Chop off first two chars for storage, but handle user input with full 10 chars.
