@@ -163,7 +163,7 @@ buttonCreate.addEventListener('clicked', async () => {
         let upper = inputStore.toUpperCase();
         if( inputStore === "1017" )
         {
-          storeId = storeIdMap.get(inputStore);
+          storeId = storeIdMap.get("1017");
         }
         else if( upper === "BDC")
         {
@@ -384,12 +384,24 @@ buttonEdit.addEventListener('clicked', async () => {
   let foundJob = null;
   let allInstallers = await prisma.Installers.findMany();
   let allStores = await prisma.Stores.findMany();
-  let storeNumberMap = new Map();
+  let storeIdMap = new Map();
   for(let x = 0; x < allStores.length; x++)
   {
     //Last two digits of Store Number match first two of PO number, used later to match PO to Store
-    let ident = ((allStores[x].Store).toString()).slice(-2);
-    storeNumberMap.set(ident, allStores[x].Store);
+    let ident = ((allStores[x].store).toString()).slice(-2);
+
+    //HDC doesn't use the same ident system
+    //635 & 6635 overlap, and BDC & 1017 overlap. Both need additional user input
+    if(isNaN(parseInt(ident)) || ident === "35") 
+    {
+      //Special cases match store to store Id
+      storeIdMap.set(allStores[x].store, allStores[x].id)
+    }
+    else
+    { 
+      //Match PO idents (first two digits) to store Ids
+      storeIdMap.set(ident, allStores[x].id);
+    }
   }
 
   const dialog = new QDialog();
@@ -405,7 +417,7 @@ buttonEdit.addEventListener('clicked', async () => {
 
   const labelStore1 = new QLabel();
   labelStore1.setObjectName("label");
-  labelStore1.setText("Store # (If PO starts with 35): ");
+  labelStore1.setText("Store # (If required): ");
 
   const textBoxStore1 = new QLineEdit();
 
@@ -415,13 +427,21 @@ buttonEdit.addEventListener('clicked', async () => {
 
     let inputPO = textBoxPO1.displayText();
     let poNum = null;
-    let storeNum = null;
+    let storeId = null; let isHDC = false; let chopped = null;
     textBoxBilled.setText("");
     textBoxPaid.setText("");
     dateSelector.setDate(QDate.currentDate());
     comboboxInstaller2.setCurrentIndex(allInstallers.length);
     foundJob = null;
     
+    if(inputPO.length === 10 && (inputPO[0] === "w" || inputPO[0] === "W") )
+    {
+      chopped = inputPO.substring(0, 2); //Save the two characters for displaying
+      inputPO = inputPO.substring(2, inputPO.length); //Chop the first two chars off the HDC PO
+      storeId = storeIdMap.get("HDC");
+      isHDC = true;
+    }
+
     if( /^\d*$/.test(inputPO) ) //Regex Checking if input contains only numbers
     {
       if(inputPO.length != 8)
@@ -438,44 +458,75 @@ buttonEdit.addEventListener('clicked', async () => {
     }
 
 
-    if(inputPO.substring(0, 2) === "35")
+    if(!isHDC)
     {
       let inputStore = textBoxStore1.displayText()
-      if(inputStore === "")
+      if(inputPO.substring(0, 2) === "35")
       {
-        textBoxFound.setText("Please enter store #.");
-        return;
-      }
+        if(inputStore === "")
+        {
+          textBoxFound.setText("Enter store: (6635 or 635)");
+          return;
+        }
 
-      if( /^\d*$/.test(inputStore) && ( inputStore === "6635" || inputStore === "0635" || inputStore === "635") )
+        if( /^\d*$/.test(inputStore) && ( inputStore === "6635" || inputStore === "635") )
+        {
+          storeId = storeIdMap.get(inputStore);
+        }
+        else
+        {
+          textBoxFound.setText("Invalid store #");
+          return;
+        }
+      }
+      else if(inputPO.substring(0, 2) === "17")
       {
-        storeNum = parseInt(inputStore);
+        if(inputStore === "")
+        {
+          textBoxFound.setText("Enter store: (1017 or BDC)");
+          return;
+        }
+   
+        let upper = inputStore.toUpperCase();
+        if( inputStore === "1017" )
+        {
+          storeId = storeIdMap.get("17");
+        }
+        else if( upper === "BDC")
+        {
+          storeId = storeIdMap.get(upper);
+        }
+        else
+        {
+          textBoxFound.setText("Please enter valid store number");
+          return;
+        }
+      }
+      else if(inputPO.substring(0, 1) === "1")
+      {
+        storeId = storeIdMap.get("BDC");
       }
       else
       {
-        textBoxFound.setText("Invalid store #");
-        return;
+        let ident = inputPO.substring(0, 2); //First three numbers tell us the store number
+        if (storeIdMap.has(ident)) 
+        {
+          storeId = storeIdMap.get(ident);
+        } 
+        else 
+        {
+          textBoxFound.setText("Store not found. Please re-enter");
+          return;
+        }
       }
     }
-    else
-    {
-      let ident = inputPO.substring(0, 2); //First three numbers tell us the store number
-      if (storeNumberMap.has(ident)) 
-      {
-        storeNum = storeNumberMap.get(ident);
-      } 
-      else 
-      {
-        displayJob.setText("Store Number not found. Invalid PO. Please Re-enter.");
-        return;
-      }
-    }
+    
 
     foundJob = await prisma.Job.findUnique({
       where: {
-        StoreId_PO: {
+        storeId_PO: {
             PO: poNum,
-            StoreId: storeNum
+            storeId: storeId
         }
       }
     })
@@ -511,7 +562,7 @@ buttonEdit.addEventListener('clicked', async () => {
       let foundQDate = new QDate( foundDate.getUTCFullYear(), foundDate.getUTCMonth(), foundDate.getUTCDate() )      
       let installerId = foundJob.installerId - 1; //Convert from Id to Index (Start from 1 to 0)
 
-      textBoxFound.setText("Found: " + poNum + ", " + storeNum);
+      textBoxFound.setText("Found: " + poNum + ", " + allStores[storeId-1].store);
       dateSelector.setDate(foundQDate )
       textBoxBilled.setText(tempBilled)
       textBoxPaid.setText(tempPaid)
@@ -656,9 +707,9 @@ buttonEdit.addEventListener('clicked', async () => {
       {
         let edited = await prisma.Job.update({
           where: {
-            StoreId_PO: {
+            storeId_PO: {
                 PO: foundJob.PO,
-                StoreId: foundJob.StoreId
+                storeId: foundJob.storeId
             }
           },
           data: {
