@@ -805,7 +805,7 @@ buttonView.addEventListener('clicked', async () => {
   const comboboxStore3 = new QComboBox();
   for(let x = 0; x < stores.length; x++)
   {
-    comboboxStore3.addItem(undefined, stores[x].Store.toString());
+    comboboxStore3.addItem(undefined, stores[x].store);
   }
   comboboxStore3.addItem(undefined, "No Store selected")
   comboboxStore3.setCurrentIndex(stores.length);
@@ -825,7 +825,7 @@ buttonView.addEventListener('clicked', async () => {
     let jobsList = "";
     for(let x = 0; x < unpaidJobs.length; x++)
     {
-      //If an installer is select, but doesn't match the current job, skip it.
+      //If an installer is selected, but doesn't match the current job, skip it.
       if(comboboxInstaller3.currentIndex() !== installers.length && 
       comboboxInstaller3.currentIndex()+1 !== unpaidJobs[x].installerId)
       {
@@ -833,7 +833,7 @@ buttonView.addEventListener('clicked', async () => {
       }
       //If a store is selected, but doesn't match the current job, skip it.
       if(comboboxStore3.currentIndex() !== stores.length &&
-      stores[comboboxStore3.currentIndex()].Store !== unpaidJobs[x].StoreId)
+      comboboxStore3.currentIndex()+1 !== unpaidJobs[x].storeId )
       {
         continue;
       }
@@ -843,7 +843,8 @@ buttonView.addEventListener('clicked', async () => {
       
       let dateString = unpaidJobs[x].billDate.toUTCString().slice(0, 16)
 
-      jobsList = jobsList + "PO: " + unpaidJobs[x].PO + "\nStore: " + unpaidJobs[x].StoreId
+      jobsList = jobsList + "PO: " + unpaidJobs[x].PO 
+        + "\nStore: " + stores[unpaidJobs[x].storeId-1].store
         + "\nInstaller: " + installers[unpaidJobs[x].installerId - 1].installer
         + "\nAmount Billed: " + billedString + "\nDate: " + dateString + "\n\n"
     }
@@ -897,7 +898,7 @@ buttonView.addEventListener('clicked', async () => {
         continue;
       }
       if(comboboxStore3.currentIndex() !== stores.length &&
-      stores[comboboxStore3.currentIndex()].Store !== mismatchedJobs[x].StoreId)
+      comboboxStore3.currentIndex()+1 !== mismatchedJobs[x].storeId)
       {
         continue;
       }
@@ -913,7 +914,8 @@ buttonView.addEventListener('clicked', async () => {
         
         let dateString = mismatchedJobs[x].billDate.toUTCString().slice(0, 16)
 
-        jobsList = jobsList + "PO: " + mismatchedJobs[x].PO + "\nStore: " + mismatchedJobs[x].StoreId
+        jobsList = jobsList + "PO: " + mismatchedJobs[x].PO 
+          + "\nStore: " + stores[mismatchedJobs[x].storeId-1].store
           + "\nInstaller: " + installers[mismatchedJobs[x].installerId - 1].installer
           + "\nAmount Billed: " + billedString + "\nAmount Paid: " + paidString
           + "\nDate: " + dateString + "\n\n"
@@ -945,7 +947,7 @@ buttonView.addEventListener('clicked', async () => {
     for(let x = 0; x < unbilledJobs.length; x++)
     {
       if(comboboxStore3.currentIndex() !== stores.length &&
-      stores[comboboxStore3.currentIndex()].Store !== unbilledJobs[x].StoreId)
+      comboboxStore3.currentIndex()+1 !== unbilledJobs[x].storeId)
       {
         continue;
       }
@@ -955,7 +957,8 @@ buttonView.addEventListener('clicked', async () => {
 
       let dateString = unbilledJobs[x].billDate.toUTCString().slice(0, 16)
 
-      jobsList = jobsList + "PO: " + unbilledJobs[x].PO + "\nStore: " + unbilledJobs[x].StoreId
+      jobsList = jobsList + "PO: " + unbilledJobs[x].PO 
+        + "\nStore: " + stores[unbilledJobs[x].storeId-1].store
         + "\nAmount Paid: " + paidString + "\nDate: " + dateString + "\n\n"
     }
 
