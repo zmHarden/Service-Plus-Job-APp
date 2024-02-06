@@ -16,13 +16,25 @@ buttonCreate.setText('Create a Job');
 buttonCreate.addEventListener('clicked', async () => {
 
   let allInstallers = await prisma.Installers.findMany();
-  let storeNumbers = await prisma.Stores.findMany();
-  let storeNumberMap = new Map();
-  for(let x = 0; x < storeNumbers.length; x++)
+  let allStores = await prisma.Stores.findMany();
+  let storeIdMap = new Map();
+  for(let x = 0; x < allStores.length; x++)
   {
     //Last two digits of Store Number match first two of PO number, used later to match PO to Store
-    let ident = ((storeNumbers[x].Store).toString()).slice(-2);
-    storeNumberMap.set(ident, storeNumbers[x].Store);
+    let ident = ((allStores[x].store).toString()).slice(-2);
+
+    //HDC doesn't use the same ident system
+    //635 & 6635 overlap, and BDC & 1017 overlap. Both need additional user input
+    if(isNaN(parseInt(ident)) || ident === "35") 
+    {
+      //Special cases match store to store Id
+      storeIdMap.set(allStores[x].store, allStores[x].id)
+    }
+    else
+    { 
+      //Match PO idents (first two digits) to store Ids
+      storeIdMap.set(ident, allStores[x].id);
+    }
   }
 
   const dialog = new QDialog();
@@ -38,7 +50,7 @@ buttonCreate.addEventListener('clicked', async () => {
 
   const labelStore1 = new QLabel();
   labelStore1.setObjectName("label");
-  labelStore1.setText("Store # (If PO starts with 35): ");
+  labelStore1.setText("Store # (If required): ");
 
   const textBoxStore1 = new QLineEdit();
 
@@ -83,59 +95,105 @@ buttonCreate.addEventListener('clicked', async () => {
     displayJob.setText("");
     let inputPO = textBoxPO1.displayText();
     let poNum = null;
-    let storeNum = null;
+    let storeId = null; let isHDC = false; let chopped = null;
     let billedAmount = null;
     let paidAmount = null;
     let date = null;
     
+    if(inputPO.length === 10 && (inputPO[0] === "w" || inputPO[0] === "W") )
+    {
+      chopped = inputPO.substring(0, 2); //Save the two characters for displaying
+      inputPO = inputPO.substring(2, inputPO.length); //Chop the first two chars off the HDC PO
+      storeId = storeIdMap.get("HDC");
+      isHDC = true;
+    }
+
     if( /^\d*$/.test(inputPO) ) //Regex Checking if input contains only numbers
     {
       if(inputPO.length != 8)
       {
-        displayJob.setText("Please enter valid PO number");
+        displayJob.setText("Incorrect length. Please enter valid PO number.");
         return;
       }
       poNum = parseInt(inputPO);
     }
     else
     {
-      displayJob.setText("PO number must contain only numbers. Please re-enter");
-      return;
-    }
-
-
-    if(inputPO.substring(0, 2) === "35")
-    {
-      let inputStore = textBoxStore1.displayText()
-      if(inputStore === "")
+      if(isHDC)
       {
-        displayJob.setText("Please enter store number.");
-        return;
-      }
-
-      if( /^\d*$/.test(inputStore) && ( inputStore === "6635" || inputStore === "0635" || inputStore === "635") )
-      {
-        storeNum = parseInt(inputStore);
+        displayJob.setText("HDC POs must contain two letters then only numbers. Please re-enter");
       }
       else
       {
-        displayJob.setText("Please enter valid store number");
-        return;
+        displayJob.setText("Non-HDC POs must contain only numbers. Please re-enter");
       }
+      return;
     }
-    else
+
+    if(!isHDC) //If the PO isn't an HDC PO, try to map it to a store.
     {
-      let ident = inputPO.substring(0, 2); //First two numbers of PO tell us the store number
-      if (storeNumberMap.has(ident)) 
+      if(inputPO.substring(0, 2) === "35")
       {
-        storeNum = storeNumberMap.get(ident);
-      } 
-      else 
+        let inputStore = textBoxStore1.displayText()
+        if(inputStore === "")
+        {
+          displayJob.setText("Please enter store number. (635 or 6635)");
+          return;
+        }
+
+        if( /^\d*$/.test(inputStore) && ( inputStore === "6635" || inputStore === "635") )
+        {
+          storeId = storeIdMap.get(inputStore);
+        }
+        else
+        {
+          displayJob.setText("Please enter valid store number");
+          return;
+        }
+      }
+      else if(inputPO.substring(0, 2) === "17")
       {
-        displayJob.setText("Store Number not found. Invalid PO. Please Re-enter.");
-        return;
+        let inputStore = textBoxStore1.displayText()
+        if(inputStore === "")
+        {
+          displayJob.setText("Please enter store number. (1017 or BDC)");
+          return;
+        }
+   
+        let upper = inputStore.toUpperCase();
+        if( inputStore === "1017" )
+        {
+          storeId = storeIdMap.get(inputStore);
+        }
+        else if( upper === "BDC")
+        {
+          storeId = storeIdMap.get(upper);
+        }
+        else
+        {
+          displayJob.setText("Please enter valid store number");
+          return;
+        }
+      }
+      else if(inputPO.substring(0, 1) === "1") //All valid POs starting with 1 are BDC jobs, besides 1017's.
+      {
+        storeId = storeIdMap.get("BDC");
+      }
+      else
+      {
+        let ident = inputPO.substring(0, 2); //First two numbers of PO tell us the store number
+        if (storeIdMap.has(ident)) 
+        {
+          storeId = storeIdMap.get(ident);
+        } 
+        else 
+        {
+          displayJob.setText("Store Number not found. Invalid PO. Please Re-enter.");
+          return;
+        }
       }
     }
+    
 
     let inputBilled = textBoxBilled.displayText();
     let decimal = inputBilled.indexOf(".");
@@ -237,7 +295,7 @@ buttonCreate.addEventListener('clicked', async () => {
       await prisma.Job.create({
         data: {
             PO: poNum,
-            StoreId: storeNum,
+            storeId: storeId,
             billDate: new Date(date),
             amountBilled: parseInt(billedAmount), //Remember, storing dollar amount as cents
             amountPaid: parseInt(paidAmount),
@@ -245,8 +303,9 @@ buttonCreate.addEventListener('clicked', async () => {
         },
       })
 
+      if(isHDC){ poNum = chopped + poNum}
       displayJob.setText("Job Successfully Created:\nPO Number: " + poNum 
-      + "\nStore Number: " + storeNum + "\nInstaller: " + installerId  
+      + "\nStore Number: " + allStores[storeId-1].store + "\nInstaller: " + installerId  
       + "\nDate: " + date + "\nAmount Billed: $" + inputBilled + "\nAmount Paid: $" + inputPaid);
       textBoxPO1.setText("");
       textBoxStore1.setText("");
@@ -324,13 +383,13 @@ buttonEdit.addEventListener('clicked', async () => {
   
   let foundJob = null;
   let allInstallers = await prisma.Installers.findMany();
-  let storeNumbers = await prisma.Stores.findMany();
+  let allStores = await prisma.Stores.findMany();
   let storeNumberMap = new Map();
-  for(let x = 0; x < storeNumbers.length; x++)
+  for(let x = 0; x < allStores.length; x++)
   {
     //Last two digits of Store Number match first two of PO number, used later to match PO to Store
-    let ident = ((storeNumbers[x].Store).toString()).slice(-2);
-    storeNumberMap.set(ident, storeNumbers[x].Store);
+    let ident = ((allStores[x].Store).toString()).slice(-2);
+    storeNumberMap.set(ident, allStores[x].Store);
   }
 
   const dialog = new QDialog();

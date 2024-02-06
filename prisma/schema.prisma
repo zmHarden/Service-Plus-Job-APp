@@ -13,8 +13,8 @@ datasource db {
 
 
 model Job {
-  Store        Stores @relation(fields: [StoreId], references: [Store])
-  StoreId      Int      
+  store        Stores @relation(fields: [storeId], references: [id])
+  storeId      Int      
   PO           Int      
   billDate     DateTime  @db.Date
   amountBilled Int?
@@ -22,7 +22,7 @@ model Job {
   installer    Installers? @relation(fields: [installerId], references: [id])
   installerId  Int?
 
-  @@id([StoreId, PO])
+  @@id([storeId, PO])
 }
 
 model Installers {
@@ -32,6 +32,7 @@ model Installers {
 }
 
 model Stores {
-  Store       Int @id
+  id          Int @id @default(autoincrement())
+  store       String @db.VarChar(4)
   jobs Job[]
 }
