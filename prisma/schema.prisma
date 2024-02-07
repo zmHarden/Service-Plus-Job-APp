@@ -15,7 +15,7 @@ datasource db {
 model Job {
   store        Stores @relation(fields: [storeId], references: [id])
   storeId      Int      
-  PO           Int      
+  PO           String @db.VarChar(10)      
   billDate     DateTime  @db.Date
   amountBilled Int?
   amountPaid   Int? 

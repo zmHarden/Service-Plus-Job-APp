@@ -94,43 +94,56 @@ buttonCreate.addEventListener('clicked', async () => {
 
     displayJob.setText("");
     let inputPO = textBoxPO1.displayText();
-    let poNum = null;
-    let storeId = null; let isHDC = false; let chopped = null;
+    let storeId = null; 
+    let isHDC = false; let isMeasure = false;
     let billedAmount = null;
     let paidAmount = null;
     let date = null;
     
-    if(inputPO.length === 10 && (inputPO[0] === "w" || inputPO[0] === "W") )
+    //HDC jobs are 10 characters, starting with two letters
+    if(inputPO.length === 10 && isNaN(parseInt(inputPO[0])) && isNaN(parseInt(inputPO[1])) )
     {
-      chopped = inputPO.substring(0, 2); //Save the two characters for displaying
-      inputPO = inputPO.substring(2, inputPO.length); //Chop the first two chars off the HDC PO
-      storeId = storeIdMap.get("HDC");
-      isHDC = true;
+      if(/^\d*$/.test(inputPO.substring(2, inputPO.length))) //2 letters, 8 numbers
+      {
+        storeId = storeIdMap.get("HDC");
+        isHDC = true;
+      }
+      else
+      {
+        displayJob.setText("HDC POs must contain two letters followed by eight numbers. Please re-enter");
+        return;
+      }
     }
-
-    if( /^\d*$/.test(inputPO) ) //Regex Checking if input contains only numbers
+    //BDC has measures that use the same PO as the install, so we have a seperate way to store them
+    else if(inputPO.length === 9 && inputPO[0].toLowerCase() === "m")
+    {
+      if(/^\d*$/.test(inputPO.substring(1, inputPO.length))) //m, 8 numbers
+      {
+        storeId = storeIdMap.get("BDC")
+        isMeasure = true;
+      }
+      else
+      {
+        displayJob.setText("BDC measure POs must contain m or M followed by eight numbers. Please re-enter");
+        return;
+      } 
+    }
+    else if( /^\d*$/.test(inputPO) ) //Regex Checking if input contains only numbers
     {
       if(inputPO.length != 8)
       {
         displayJob.setText("Incorrect length. Please enter valid PO number.");
         return;
       }
-      poNum = parseInt(inputPO);
     }
     else
     {
-      if(isHDC)
-      {
-        displayJob.setText("HDC POs must contain two letters then only numbers. Please re-enter");
-      }
-      else
-      {
-        displayJob.setText("Non-HDC POs must contain only numbers. Please re-enter");
-      }
+      displayJob.setText("Normal POs must contain only numbers. Please re-enter");
       return;
     }
 
-    if(!isHDC) //If the PO isn't an HDC PO, try to map it to a store.
+    //If the PO isn't an HDC PO or a BDC measure, try to map it to a store.
+    if(!isHDC && !isMeasure) 
     {
       if(inputPO.substring(0, 2) === "35")
       {
@@ -294,7 +307,7 @@ buttonCreate.addEventListener('clicked', async () => {
 
       await prisma.Job.create({
         data: {
-            PO: poNum,
+            PO: inputPO,
             storeId: storeId,
             billDate: new Date(date),
             amountBilled: parseInt(billedAmount), //Remember, storing dollar amount as cents
@@ -303,8 +316,7 @@ buttonCreate.addEventListener('clicked', async () => {
         },
       })
 
-      if(isHDC){ poNum = chopped + poNum}
-      displayJob.setText("Job Successfully Created:\nPO Number: " + poNum 
+      displayJob.setText("Job Successfully Created:\nPO Number: " + inputPO 
       + "\nStore Number: " + allStores[storeId-1].store + "\nInstaller: " + installerId  
       + "\nDate: " + date + "\nAmount Billed: $" + inputBilled + "\nAmount Paid: $" + inputPaid);
       textBoxPO1.setText("");
