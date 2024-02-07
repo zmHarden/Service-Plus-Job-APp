@@ -438,30 +438,47 @@ buttonEdit.addEventListener('clicked', async () => {
   SearchButton.addEventListener('clicked', async () => {
 
     let inputPO = textBoxPO1.displayText();
-    let poNum = null;
-    let storeId = null; let isHDC = false; let chopped = null;
+    let storeId = null; 
+    let isHDC = false; let isMeasure = false;
     textBoxBilled.setText("");
     textBoxPaid.setText("");
     dateSelector.setDate(QDate.currentDate());
     comboboxInstaller2.setCurrentIndex(allInstallers.length);
     foundJob = null;
     
-    if(inputPO.length === 10 && (inputPO[0] === "w" || inputPO[0] === "W") )
+    if(inputPO.length === 10 && isNaN(parseInt(inputPO[0])) && isNaN(parseInt(inputPO[1])) )
     {
-      chopped = inputPO.substring(0, 2); //Save the two characters for displaying
-      inputPO = inputPO.substring(2, inputPO.length); //Chop the first two chars off the HDC PO
-      storeId = storeIdMap.get("HDC");
-      isHDC = true;
+      if(/^\d*$/.test(inputPO.substring(2, inputPO.length))) //2 letters, 8 numbers
+      {
+        storeId = storeIdMap.get("HDC");
+        isHDC = true;
+      }
+      else
+      {
+        textBoxFound.setText("Invalid PO #");
+        return;
+      }
     }
-
-    if( /^\d*$/.test(inputPO) ) //Regex Checking if input contains only numbers
+    else if(inputPO.length === 9 && inputPO[0].toLowerCase() === "m")
+    {
+      if(/^\d*$/.test(inputPO.substring(1, inputPO.length))) //m, 8 numbers
+      {
+        storeId = storeIdMap.get("BDC")
+        isMeasure = true;
+      }
+      else
+      {
+        textBoxFound.setText("Invalid PO #");
+        return;
+      } 
+    }
+    else if( /^\d*$/.test(inputPO) ) //Regex Checking if input contains only numbers
     {
       if(inputPO.length != 8)
       {
         textBoxFound.setText("Invalid PO #");
         return;
       }
-      poNum = parseInt(inputPO);
     }
     else
     {
@@ -470,7 +487,7 @@ buttonEdit.addEventListener('clicked', async () => {
     }
 
 
-    if(!isHDC)
+    if(!isHDC && !isMeasure)
     {
       let inputStore = textBoxStore1.displayText()
       if(inputPO.substring(0, 2) === "35")
@@ -537,7 +554,7 @@ buttonEdit.addEventListener('clicked', async () => {
     foundJob = await prisma.Job.findUnique({
       where: {
         storeId_PO: {
-            PO: poNum,
+            PO: inputPO,
             storeId: storeId
         }
       }
@@ -574,7 +591,7 @@ buttonEdit.addEventListener('clicked', async () => {
       let foundQDate = new QDate( foundDate.getUTCFullYear(), foundDate.getUTCMonth(), foundDate.getUTCDate() )      
       let installerId = foundJob.installerId - 1; //Convert from Id to Index (Start from 1 to 0)
 
-      textBoxFound.setText("Found: " + poNum + ", " + allStores[storeId-1].store);
+      textBoxFound.setText("Found: " + inputPO + ", " + allStores[storeId-1].store);
       dateSelector.setDate(foundQDate )
       textBoxBilled.setText(tempBilled)
       textBoxPaid.setText(tempPaid)
