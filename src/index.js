@@ -321,8 +321,8 @@ buttonCreate.addEventListener('clicked', async () => {
       + "\nDate: " + date + "\nAmount Billed: $" + inputBilled + "\nAmount Paid: $" + inputPaid);
       textBoxPO1.setText("");
       textBoxStore1.setText("");
-      comboboxInstaller1.setCurrentIndex(allInstallers.length);
-      //dateSelector.setDate(QDate.currentDate()); The way jobs are entered, we re-use dates several times.
+      //comboboxInstaller1.setCurrentIndex(allInstallers.length); //The way jobs are entered, we use the same installer several times
+      //dateSelector.setDate(QDate.currentDate()); likewise, we re-use dates several times.
       textBoxBilled.setText("");
       textBoxPaid.setText("");
 
