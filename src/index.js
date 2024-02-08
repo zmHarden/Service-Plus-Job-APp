@@ -322,7 +322,7 @@ buttonCreate.addEventListener('clicked', async () => {
       textBoxPO1.setText("");
       textBoxStore1.setText("");
       comboboxInstaller1.setCurrentIndex(allInstallers.length);
-      dateSelector.setDate(QDate.currentDate());
+      //dateSelector.setDate(QDate.currentDate()); The way jobs are entered, we re-use dates several times.
       textBoxBilled.setText("");
       textBoxPaid.setText("");
 
@@ -1061,7 +1061,3 @@ win.setStyleSheet(
 win.show();
 
 (global).win = win;
-
-//Tread Blinds.com (BDC) and HomeDepot.com (HDC) as stores
-//BDC jobs start with 1, and are 8 digits. For jobs starting with 17, ask for store number (1017 or BDC [case insensitive])
-//HDC jobs start with W and are 10 digits. Chop off first two chars for storage, but handle user input with full 10 chars.
