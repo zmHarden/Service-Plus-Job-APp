@@ -15,8 +15,8 @@ const buttonCreate = new QPushButton();
 buttonCreate.setText('Create a Job');
 buttonCreate.addEventListener('clicked', async () => {
 
-  let allInstallers = await prisma.Installers.findMany();
-  let allStores = await prisma.Stores.findMany();
+  let allInstallers = await prisma.installers.findMany();
+  let allStores = await prisma.stores.findMany();
   let storeIdMap = new Map();
   for(let x = 0; x < allStores.length; x++)
   {
@@ -305,14 +305,15 @@ buttonCreate.addEventListener('clicked', async () => {
 
     try{
 
-      await prisma.Job.create({
+      await prisma.job.create({
         data: {
             PO: inputPO,
             storeId: storeId,
             billDate: new Date(date),
             amountBilled: parseInt(billedAmount), //Remember, storing dollar amount as cents
             amountPaid: parseInt(paidAmount),
-            installerId: databaseInstaller
+            installerId: databaseInstaller,
+            creationDate: new Date()
         },
       })
 
@@ -394,8 +395,8 @@ buttonEdit.setText('Edit a Job');
 buttonEdit.addEventListener('clicked', async () => {
   
   let foundJob = null;
-  let allInstallers = await prisma.Installers.findMany();
-  let allStores = await prisma.Stores.findMany();
+  let allInstallers = await prisma.installers.findMany();
+  let allStores = await prisma.stores.findMany();
   let storeIdMap = new Map();
   for(let x = 0; x < allStores.length; x++)
   {
@@ -551,7 +552,7 @@ buttonEdit.addEventListener('clicked', async () => {
     }
     
 
-    foundJob = await prisma.Job.findUnique({
+    foundJob = await prisma.job.findUnique({
       where: {
         storeId_PO: {
             PO: inputPO,
@@ -734,7 +735,7 @@ buttonEdit.addEventListener('clicked', async () => {
 
       try
       {
-        let edited = await prisma.Job.update({
+        let edited = await prisma.job.update({
           where: {
             storeId_PO: {
                 PO: foundJob.PO,
@@ -745,7 +746,8 @@ buttonEdit.addEventListener('clicked', async () => {
             billDate: date,
             amountBilled: parseInt(billedAmount),
             amountPaid: parseInt(paidAmount),
-            installerId: mySQLId
+            installerId: mySQLId,
+            editDate: new Date()
           }
         })
 
@@ -845,7 +847,7 @@ buttonView.addEventListener('clicked', async () => {
 
     let unpaidJobs = null;
 
-    unpaidJobs = await prisma.Job.findMany({
+    unpaidJobs = await prisma.job.findMany({
       where: {
         amountPaid:null 
       }
@@ -895,7 +897,7 @@ buttonView.addEventListener('clicked', async () => {
 
     let mismatchedJobs = null;
 
-    mismatchedJobs = await prisma.Job.findMany({
+    mismatchedJobs = await prisma.job.findMany({
       where: {
         AND: [
           {
@@ -965,7 +967,7 @@ buttonView.addEventListener('clicked', async () => {
   const noBillButton = new QPushButton();
   noBillButton.setText('Unbilled Jobs');
   noBillButton.addEventListener('clicked', async () => {
-    let unbilledJobs = await prisma.Job.findMany({
+    let unbilledJobs = await prisma.job.findMany({
       where: 
       {
         amountBilled: null

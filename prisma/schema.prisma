@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,29 +7,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model installers {
+  id        Int    @id @default(autoincrement())
+  installer String @db.VarChar(20)
+}
 
-
-model Job {
-  store        Stores @relation(fields: [storeId], references: [id])
-  storeId      Int      
-  PO           String @db.VarChar(10)      
+model job {
+  storeId      Int
+  PO           String    @db.VarChar(10)
   billDate     DateTime  @db.Date
   amountBilled Int?
-  amountPaid   Int? 
-  installer    Installers? @relation(fields: [installerId], references: [id])
+  amountPaid   Int?
   installerId  Int?
+  creationDate DateTime? @db.Date
+  editDate     DateTime? @db.Date
 
   @@id([storeId, PO])
+  @@index([installerId], map: "Job_installerId_fkey")
 }
 
-model Installers {
-  id          Int     @id @default(autoincrement())
-  installer   String @db.VarChar(20)
-  jobs Job[]
-}
-
-model Stores {
-  id          Int @id @default(autoincrement())
-  store       String @db.VarChar(4)
-  jobs Job[]
+model stores {
+  id    Int    @id @default(autoincrement())
+  store String @db.VarChar(4)
 }
