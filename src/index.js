@@ -873,11 +873,32 @@ buttonView.addEventListener('clicked', async () => {
       let billedString = tempBilled.slice(0, tempBilled.length-2) + "." + tempBilled.slice(tempBilled.length-2)
       
       let dateString = unpaidJobs[x].billDate.toUTCString().slice(0, 16)
+      let creationDate = unpaidJobs[x].creationDate
+      if(creationDate !== null)
+      {
+        creationDate = creationDate.toUTCString().slice(0, 16)
+      }
+      else
+      {
+        creationDate = "Created before 2/16/2024"
+      }
+
+      let editDate = unpaidJobs[x].editDate
+      if(editDate !== null)
+      {
+        editDate = editDate.toUTCString().slice(0, 16)
+      }
+      else
+      {
+        editDate = "Unedited"
+      }
 
       jobsList = jobsList + "PO: " + unpaidJobs[x].PO 
         + "\nStore: " + stores[unpaidJobs[x].storeId-1].store
         + "\nInstaller: " + installers[unpaidJobs[x].installerId - 1].installer
-        + "\nAmount Billed: " + billedString + "\nDate: " + dateString + "\n\n"
+        + "\nAmount Billed: " + billedString + "\nDate: " + dateString
+        + "\nJob Created: " + creationDate + "\nJob edited: " + editDate
+        + "\n\n"
     }
 
     if(jobsList === "")
@@ -944,12 +965,33 @@ buttonView.addEventListener('clicked', async () => {
         let paidString = tempPaid.slice(0, tempPaid.length-2) + "." + tempPaid.slice(tempPaid.length-2)
         
         let dateString = mismatchedJobs[x].billDate.toUTCString().slice(0, 16)
+        let creationDate = mismatchedJobs[x].creationDate
+        if(creationDate !== null)
+        {
+          creationDate = creationDate.toUTCString().slice(0, 16)
+        }
+        else
+        {
+          creationDate = "Created before 2/16/2024"
+        }
+
+        let editDate = mismatchedJobs[x].editDate
+        if(editDate !== null)
+        {
+          editDate = editDate.toUTCString().slice(0, 16)
+        }
+        else
+        {
+          editDate = "Unedited"
+        }
 
         jobsList = jobsList + "PO: " + mismatchedJobs[x].PO 
           + "\nStore: " + stores[mismatchedJobs[x].storeId-1].store
           + "\nInstaller: " + installers[mismatchedJobs[x].installerId - 1].installer
           + "\nAmount Billed: " + billedString + "\nAmount Paid: " + paidString
-          + "\nDate: " + dateString + "\n\n"
+          + "\nDate: " + dateString 
+          + "\nJob Created: " + creationDate + "\nJob edited: " + editDate
+          + "\n\n"
       }
     }
 
@@ -987,10 +1029,31 @@ buttonView.addEventListener('clicked', async () => {
       let paidString = tempPaid.slice(0, tempPaid.length-2) + "." + tempPaid.slice(tempPaid.length-2)
 
       let dateString = unbilledJobs[x].billDate.toUTCString().slice(0, 16)
+      let creationDate = unbilledJobs[x].creationDate
+      if(creationDate !== null)
+      {
+        creationDate = creationDate.toUTCString().slice(0, 16)
+      }
+      else
+      {
+        creationDate = "Created before 2/16/2024"
+      }
+
+      let editDate = unbilledJobs[x].editDate
+      if(editDate !== null)
+      {
+        editDate = editDate.toUTCString().slice(0, 16)
+      }
+      else
+      {
+        editDate = "Unedited"
+      }
 
       jobsList = jobsList + "PO: " + unbilledJobs[x].PO 
         + "\nStore: " + stores[unbilledJobs[x].storeId-1].store
-        + "\nAmount Paid: " + paidString + "\nDate: " + dateString + "\n\n"
+        + "\nAmount Paid: " + paidString + "\nDate: " + dateString 
+        + "\nJob Created: " + creationDate + "\nJob edited: " + editDate
+        + "\n\n"
     }
 
     if(jobsList === "")
