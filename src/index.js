@@ -176,7 +176,7 @@ buttonCreate.addEventListener('clicked', async () => {
         let upper = inputStore.toUpperCase();
         if( inputStore === "1017" )
         {
-          storeId = storeIdMap.get("1017");
+          storeId = storeIdMap.get("17");
         }
         else if( upper === "BDC")
         {
@@ -303,9 +303,11 @@ buttonCreate.addEventListener('clicked', async () => {
       installerId = allInstallers[installerId].installer
     }
 
-    try{
+    let existingJob = null;
 
-      await prisma.job.create({
+    try{
+      //Apparently this can't actually return the existing job?
+      existingJob = await prisma.job.create({
         data: {
             PO: inputPO,
             storeId: storeId,
@@ -332,6 +334,16 @@ buttonCreate.addEventListener('clicked', async () => {
       if( err.toString().includes("Unique constraint failed on the constraint: `PRIMARY`") )
       {
         displayJob.setText("A Job matching that PO and Store Number is already in the database");
+
+        let existingJob = await prisma.job.findUnique({
+          where: {
+            storeId_PO: {
+                PO: inputPO,
+                storeId: storeId
+            }
+          }
+        })
+        console.log(existingJob);
       }
       else
       {   
